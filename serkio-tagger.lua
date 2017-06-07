@@ -6,10 +6,20 @@ tagger.marking_active = false
 tagger.tag_hud_active = false
 
 ---------------------------------------------------------------------
+-- Display message on screen and in console, if specified
+function tagger:message(message, console)
+    mp.osd_message(message)
+
+    if console then
+        mp.msg.info(message)
+    end
+end
+
+---------------------------------------------------------------------
 -- Deletes a tag instance on the timeline, if the tag is no longer
 -- associated with any time on the timeline - remove it entirely.
 function tagger:delete_tag()
-    mp.osd_message('Delete this tag? [y/n]')
+    self:message('Delete this tag? [y/n]')
 end
 
 ---------------------------------------------------------------------
@@ -17,7 +27,7 @@ end
 -- which tag to associate with that particular part of the timeline.
 -- If the tag doesn't exist, it's first created, then selected.
 function tagger:choose_tag()
-    mp.osd_message('Enter a tag')
+    self:message('Enter a tag')
 end
 
 ---------------------------------------------------------------------
@@ -26,9 +36,9 @@ end
 -- to end it.
 function tagger:mark_tag()
     if self.marking_active then
-        mp.osd_message('Marking the end of a tag')
+        self:message('Marking the end of a tag')
     else
-        mp.osd_message('Marking the beginning of a tag')
+        self:message('Marking the beginning of a tag')
     end
 
     self.marking_active = not self.marking_active
@@ -42,9 +52,9 @@ function tagger:toggle_tag_hud()
     self.tag_hud_active = not self.tag_hud_active
 
     if self.tag_hud_active then
-        mp.osd_message('Tag heads up display activated')
+        self:message('Tag heads up display activated')
     else
-        mp.osd_message('Tag heads up display disabled')
+        self:message('Tag heads up display disabled')
     end
 end
 
@@ -53,7 +63,7 @@ end
 -- `on top` of a tag, if we're not it will look for a tag `in front`
 -- of our current position.
 function tagger:change_tag_in()
-    mp.osd_message('Change tag `in` time')
+    self:message('Change tag `in` time')
 end
 
 ---------------------------------------------------------------------
@@ -61,19 +71,19 @@ end
 -- of a tag, if we're not it will look for a tag `behind` our current
 -- position.
 function tagger:change_tag_out()
-    mp.osd_message('Change tag `out` time')
+    self:message('Change tag `out` time')
 end
 
 ---------------------------------------------------------------------
 -- Load all tags from a JSON file.
 function tagger:load_tags()
-    mp.osd_message('Load tags from file')
+    self:message('Load tags from file')
 end
 
 ---------------------------------------------------------------------
 -- Save all tags to a JSON file.
 function tagger:save_tags()
-    mp.osd_message('Save tags from file')
+    self:message('Save tags from file')
 end
 
 ---------------------------------------------------------------------
@@ -100,14 +110,10 @@ function tagger:toggle_existence()
     self.active = not self.active
 
     if self.active then
-        mp.osd_message('Serkio activated')
-        mp.msg.info('Serkio tagger activated')
-
+        self:message('Serkio activated', true)
         self:add_keybindings(self.normal_bindings)
     else
-        mp.osd_message('Serkio deactivated')
-        mp.msg.info('Serkio tagger deactivated')
-
+        self:message('Serkio deactivated', true)
         self:remove_keybindings(self.normal_bindings)
     end
 end
