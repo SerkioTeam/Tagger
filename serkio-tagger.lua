@@ -77,6 +77,24 @@ function tagger:save_tags()
 end
 
 ---------------------------------------------------------------------
+function tagger:add_keybindings(bindings)
+    for i=1, #bindings do
+        mp.add_forced_key_binding(
+            bindings[i][1],
+            bindings[i][2],
+            bindings[i][3]
+        )
+    end
+end
+
+---------------------------------------------------------------------
+function tagger:remove_keybindings(bindings)
+    for i=1, #bindings do
+        mp.remove_key_binding(bindings[i][2])
+    end
+end
+
+---------------------------------------------------------------------
 -- Toggles the tagger plugin and controls normal mode keybindings.
 function tagger:toggle_existence()
     self.active = not self.active
@@ -84,23 +102,13 @@ function tagger:toggle_existence()
     if self.active then
         mp.osd_message('Serkio activated')
         mp.msg.info('Serkio tagger activated')
+
+        self:add_keybindings(self.normal_bindings)
     else
         mp.osd_message('Serkio deactivated')
         mp.msg.info('Serkio tagger deactivated')
-    end
 
-    if self.active then
-        for i=1, #self.normal_bindings do
-            mp.add_forced_key_binding(
-                self.normal_bindings[i][1],
-                self.normal_bindings[i][2],
-                self.normal_bindings[i][3]
-            )
-        end
-    else
-        for i=1, #self.normal_bindings do
-            mp.remove_key_binding(self.normal_bindings[i][2])
-        end
+        self:remove_keybindings(self.normal_bindings)
     end
 end
 
