@@ -1,17 +1,29 @@
-local mp = require('mp')
 local tagger = {}
+local mpv_loaded, mp = pcall(require, 'mp')
 
+tagger.mp = mp
 tagger.active = false
 tagger.marking_active = false
 tagger.tag_hud_active = false
 
 ---------------------------------------------------------------------
+-- Stub MPV library for running unit tests under `busted`
+if not mpv_loaded then
+    tagger.mp = {}
+
+    function tagger.mp.osd_message(message) end
+    function tagger.mp.log(level, message) end
+    function tagger.mp.add_forced_key_binding(key, name, fn) end
+    function tagger.mp.remove_key_binding(key, name, fn) end
+end
+
+---------------------------------------------------------------------
 -- Display message on screen and in console, if specified
 function tagger:message(message, console)
-    mp.osd_message(message)
+    self.mp.osd_message(message)
 
     if console then
-        mp.msg.info(message)
+        self.mp.log('info', message)
     end
 end
 
@@ -89,7 +101,7 @@ end
 ---------------------------------------------------------------------
 function tagger:add_keybindings(bindings)
     for i=1, #bindings do
-        mp.add_forced_key_binding(
+        self.mp.add_forced_key_binding(
             bindings[i][1],
             bindings[i][2],
             bindings[i][3]
@@ -100,7 +112,7 @@ end
 ---------------------------------------------------------------------
 function tagger:remove_keybindings(bindings)
     for i=1, #bindings do
-        mp.remove_key_binding(bindings[i][2])
+        self.mp.remove_key_binding(bindings[i][2])
     end
 end
 
@@ -130,8 +142,10 @@ tagger.normal_bindings = {
     {'s', 'save-tags', function () return tagger:save_tags() end},
 }
 
-mp.add_forced_key_binding(
+tagger.mp.add_forced_key_binding(
     'ctrl+t',
     'toggle-tagger',
     function () return tagger:toggle_existence() end
 )
+
+return tagger
