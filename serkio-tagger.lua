@@ -5,6 +5,11 @@ tagger.mp = mp
 tagger.active = false
 tagger.marking_active = false
 tagger.tag_hud_active = false
+tagger.chosen_tag = ''
+tagger.input_tag_string = ''
+
+-- modes are: normal and input
+tagger.mode = 'normal'
 
 ---------------------------------------------------------------------
 -- Stub MPV library for running unit tests under `busted`
@@ -18,13 +23,19 @@ if not mpv_loaded then
 end
 
 ---------------------------------------------------------------------
--- Display message on screen and in console, if specified
+-- Display message on screen and in console, if specified.
 function tagger:message(message, console)
     self.mp.osd_message(message)
 
     if console then
         self.mp.log('info', message)
     end
+end
+
+---------------------------------------------------------------------
+-- Creates a tag if it doesn't exist.
+function tagger:create_tag(name)
+    -- Stub: return `true` if tag was created.
 end
 
 ---------------------------------------------------------------------
@@ -35,11 +46,68 @@ function tagger:delete_tag()
 end
 
 ---------------------------------------------------------------------
--- Selects a tag as `chosen`, so when the user presses `m` we know
--- which tag to associate with that particular part of the timeline.
--- If the tag doesn't exist, it's first created, then selected.
+-- Switches the tagger into `input` mode in order to input a tag.
 function tagger:choose_tag()
+    self.mode = 'input'
     self:message('Enter a tag')
+
+    self:remove_keybindings(self.normal_bindings)
+    self:add_keybindings(self.enter_bindings)
+end
+
+---------------------------------------------------------------------
+-- Takes input from the user so they can enter a tag name. It then
+-- creates that tag if necessary and `chooses` it, so when the user
+-- presses `m` (mark) we know which tag to associate with that
+-- particular part of the timeline.
+function tagger:tag_input_handler(char)
+    -- `enter` and `escape` behave quite similar
+    if char == 'enter'  or char == 'esc' then
+        if char == 'enter' then
+            -- a dash isn't allowed as the end character
+            if self.input_tag_string:sub(-1) == '-' then
+                self.input_tag_string = self.input_tag_string:sub(1, -2)
+            end
+
+            if self.input_tag_string:len() > 0 then
+                if self:create_tag(self.input_tag_string) then
+                    self:message(string.format('%q created and chosen', self.input_tag_string))
+                else
+                    self:message(string.format('%q chosen', self.input_tag_string))
+                end
+
+                self.chosen_tag = self.input_tag_string
+            end
+        end
+
+        -- reset input buffer
+        self.input_tag_string = ''
+
+        -- switch back to normal mode
+        self.mode = 'normal'
+        self:remove_keybindings(self.enter_bindings)
+        self:add_keybindings(self.normal_bindings)
+    -- backspace
+    elseif char == 'bs' then
+        self.input_tag_string = self.input_tag_string:sub(1, -2)
+        self:message(string.format('Tag: %s', self.input_tag_string))
+    -- a-z, A-Z and dash (`-`)
+    else
+        if char == '-' then
+            -- a dash isn't allowed as the first character
+            if self.input_tag_string:len() == 0 then
+                do return end
+            end
+
+            -- no more than one dash can exist between words
+            if self.input_tag_string:sub(-1) == '-' then
+                do return end
+            end
+        end
+
+        self.input_tag_string = self.input_tag_string .. char:lower()
+        self:message(string.format('Tag: %s', self.input_tag_string))
+    end
 end
 
 ---------------------------------------------------------------------
@@ -141,6 +209,37 @@ tagger.normal_bindings = {
     {'l', 'load-tags', function () return tagger:load_tags() end},
     {'s', 'save-tags', function () return tagger:save_tags() end},
 }
+
+-- `enter mode` keybindings
+tagger.enter_bindings = {
+    {
+        'space', 'space',
+        function () return tagger:tag_input_handler('-') end
+    },
+    {
+        'bs', 'bs',
+        function () return tagger:tag_input_handler('bs') end
+    },
+    {
+        'enter', 'enter',
+        function () return tagger:tag_input_handler('enter') end
+    },
+    {
+        'esc', 'esc',
+        function () return tagger:tag_input_handler('esc') end
+    }
+}
+
+letters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-'
+
+for i = 1, letters:len() do
+    local c = letters:sub(i, i)
+
+    table.insert(
+        tagger.enter_bindings,
+        {c, c, function () return tagger:tag_input_handler(c) end}
+    )
+end
 
 tagger.mp.add_forced_key_binding(
     'ctrl+t',
