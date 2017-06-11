@@ -167,6 +167,7 @@ function tagger:save_tags()
 end
 
 ---------------------------------------------------------------------
+-- Takes a table of keybindings and enables them
 function tagger:add_keybindings(bindings)
     for i=1, #bindings do
         self.mp.add_forced_key_binding(
@@ -178,6 +179,7 @@ function tagger:add_keybindings(bindings)
 end
 
 ---------------------------------------------------------------------
+-- Takes a table of keybindings and disables them
 function tagger:remove_keybindings(bindings)
     for i=1, #bindings do
         self.mp.remove_key_binding(bindings[i][2])
