@@ -1,0 +1,238 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Serkio Tagger GUI</title>
+
+        <style>
+            html, body {
+                height: 100%;
+                overflow-y: hidden;
+            }
+
+            body {
+                background: black;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            #shot {
+                position: relative;
+                background: url(gui.jpg);
+                background-size: cover;
+                width: 1000px;
+                height: 562px;
+            }
+
+            #tags {
+                position: absolute;
+                width: 382px; /* golden ratio */
+                right: 0;
+                top: 0;
+                text-align: right;
+                background: rgba(0, 0, 0, 0.2);
+                height: 100%;
+            }
+
+            #tags h1 {
+                text-align: center;
+                border-bottom: 1px solid #000;
+                color: rgba(0, 0, 0, 0.5);
+            }
+
+            #tags span {
+                background: #83AF9B;
+                border-radius: 3px;
+                padding: 2px 4px;
+                display: inline-block;
+                margin: 4px 2px;
+                text-shadow: -1px -1px 0 #9DC9B5;
+            }
+
+            #tags span.active {
+                background: #FE4365;
+                text-shadow: -1px -1px 0 #FF5D7F;
+            }
+
+            #tag {
+                position: absolute;
+                top: 0;
+                left: 0;
+                background: #FE4365;
+                text-align: center;
+                padding: 1em 1em;
+                border-radius: 36px;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                height: 50px;
+                text-shadow: -1px -1px 0 #F96883;
+                color: #772231;
+                /* animation: blinker 1s cubic-bezier(.95, .05, .8, .04) infinite alternate; */
+            }
+
+            #tag-time {
+                font-size: 12px;
+            }
+
+            #tag > span {
+                font-weight: bold;
+                font-size: 20px;
+            }
+
+            @keyframes blinker {
+              from { opacity: 1; }
+              to { opacity: 0.5; }
+            }
+
+            .hidden {
+                display: none !important;
+            }
+
+            #notification {
+                height: 100%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                color: #FFF;
+            }
+
+            #notification h1 {
+                text-align: center;
+                padding: 1em;
+                border-radius: 14px;
+            }
+
+            h1.error {
+                background: RGBA(255, 0, 0, 0.7);
+                border: 1px solid #F00;
+            }
+
+            h1.message {
+                background: RGBA(254, 67, 101, 0.7);
+                border: 1px solid #FE4365;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="shot">
+            <div id="notification" class="hidden">
+                <h1 id="1" class="message">Enter a tag name</h1>
+                <h1 id="2" class="hidden message">princess-bubblegum_</h1>
+                <h1 id="3" class="hidden message">End time changed</h1>
+                <h1 id="4" class="hidden error">Delete this tag? [y/n]</h1>
+                <h1 id="5" class="hidden error">A tag start time cannot come after it's end.</h1>
+                <h1 id="6" class="hidden error">A tag end time cannot come before it's start.</h1>
+            </div>
+            <div id="tag" class="hidden">
+                <span>lumpy-space-princess</span>
+
+                <div id="tag-time">
+                    <span>00:03:03.23</span>
+                    <span>—</span>
+                    <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                    <span class="hidden">00:03:15.40</span>
+                </div>
+            </div>
+            <div id="tags" class="hidden">
+                <h1>Tags in this video</h1>
+                <span class="active">finn</span>
+                <span>princess-bubblegum</span>
+                <span>marceline</span>
+                <span>flame-princess</span>
+                <span class="active">evening</span>
+                <span>ice-king</span>
+                <span>lemongrab</span>
+                <span>lumpy-space-princess</span>
+                <span>swimming</span>
+                <span class="active">unicorn</span>
+                <span>the-lich</span>
+                <span>treehouse</span>
+                <span>wizard</span>
+                <span>vending-machine</span>
+                <span class="active">kingdom</span>
+                <span>bmo</span>
+                <span>rain</span>
+                <span>royalty</span>
+                <span>death</span>
+                <span>singing</span>
+                <span class="active">hat</span>
+                <span>dancing</span>
+                <span>party</span>
+                <span>sleeping</span>
+                <span>bass</span>
+                <span class="active">lady-rainicorn</span>
+                <span>waterfall</span>
+                <span>climbing</span>
+                <span>fight</span>
+                <span>sword</span>
+                <span>horse</span>
+                <span>space</span>
+                <span class="active">jake</span>
+                <span>skateboard</span>
+                <span>island</span>
+                <span>robot</span>
+                <span class="active">backpack</span>
+            </div>
+        </div>
+    <script>
+        var i = 1, limit = 6;
+
+        function getKey(e) {
+            // up
+            if (e.keyCode == 39) {
+                if (i == limit) {
+                    i = 1;
+                } else {
+                    i += 1;
+                }
+
+                document.getElementById('1').classList.add('hidden');
+                document.getElementById('2').classList.add('hidden');
+                document.getElementById('3').classList.add('hidden');
+                document.getElementById('4').classList.add('hidden');
+                document.getElementById('5').classList.add('hidden');
+                document.getElementById('6').classList.add('hidden');
+
+                document.getElementById('' + i).classList.remove('hidden');
+            // down
+            } else if (e.keyCode == 37) {
+                if (i == 1) {
+                    i = limit;
+                } else {
+                    i -= 1;
+                }
+
+                document.getElementById('1').classList.add('hidden');
+                document.getElementById('2').classList.add('hidden');
+                document.getElementById('3').classList.add('hidden');
+                document.getElementById('4').classList.add('hidden');
+                document.getElementById('5').classList.add('hidden');
+                document.getElementById('6').classList.add('hidden');
+
+                document.getElementById('' + i).classList.remove('hidden');
+            // `1`
+            } else if (e.keyCode == 49) {
+                toggleVisible(document.getElementById('tag'));
+            // `2`
+            } else if (e.keyCode == 50) {
+                toggleVisible(document.getElementById('notification'));
+            // `3`
+            } else if (e.keyCode == 51) {
+                toggleVisible(document.getElementById('tags'));
+            }
+        }
+
+        var toggleVisible = function(item) {
+            if (item.classList.contains('hidden')){
+                return item.classList.remove('hidden');
+            } else {
+                return item.classList.add('hidden');
+            }
+        };
+
+        document.onkeyup = getKey;
+    </script>
+    </body>
+</html>
