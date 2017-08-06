@@ -161,7 +161,7 @@ end
 -- Utility function to work out the width of a string in pixels.
 -- Useful for creating container boxes.
 function tagger:string_pixel_width(text, upper_width, lower_width)
-    count = 0
+    local count = 0
 
     for i=1, #text do
         local s = text:sub(i, i)
