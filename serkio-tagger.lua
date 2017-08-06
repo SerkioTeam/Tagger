@@ -8,9 +8,14 @@ tagger.marking_active = false
 tagger.tag_hud_active = false
 tagger.chosen_tag = ''
 tagger.input_tag_string = ''
+tagger.rendered_string = ''
 
 -- modes are: normal and input
 tagger.mode = 'normal'
+
+-- only one message should be displayed at a time,
+-- this is why there isn't a queue of any kind.
+tagger.message = {}
 
 ---------------------------------------------------------------------
 -- Stub MPV library for running unit tests under `busted`
@@ -51,24 +56,154 @@ function tagger:colour(id, colour)
     return '{' .. alpha .. string.format('\\%dc&H%s&', id, colour) .. '}'
 end
 
+
+---------------------------------------------------------------------
+-- Reset the notification message
+function tagger:clear_message()
+    self.message = {
+        -- the text to display
+        content = '',
+
+        -- duration of message display in seconds
+        duration = 1.5,
+
+        -- available styles: notification, warning
+        style = 'notification',
+
+        -- is the message time bound?
+        time_bound = true,
+
+        -- is the message showing?
+        active = false,
+    }
+end
+
+---------------------------------------------------------------------
+-- Create a message
+function tagger:show_message(message, time_bound, style)
+    self.message.content = message
+    self.message.time_bound = time_bound or false
+    self.message.style = style or 'notification'
+    self.message.active = true
+
+    -- start a periodic timer to clear the message when necessary
+    if self.message.time_bound then
+        local start_time = self.mp.get_time()
+
+        message_timer = self.mp.add_periodic_timer(0.05, function()
+            if self.message.active then
+                if self.mp.get_time() >= start_time + self.message.duration then
+                    self:clear_message()
+                    message_timer:kill()
+                end
+            end
+        end)
+    end
+end
+
+
+---------------------------------------------------------------------
+-- Render a message
+function tagger:render_message(screenx, screeny)
+    if not self.message.active then
+        return
+    end
+
+    -- Pixel counts for font size 64
+    local text_size = {upper_w=36, lower_w=28, height=45}
+
+    local msg_pixel_width = self:string_pixel_width(
+        self.message.content,
+        text_size.upper_w,
+        text_size.lower_w
+    )
+
+    local box_width = msg_pixel_width + (text_size.upper_w * 2)
+    local box_height = text_size.height * 4
+
+    -- rounded rectangle box
+    self.ass:new_event()
+
+    -- background
+    self.ass:append(self:colour(1, 'FE4365B2'))
+
+    -- border
+    self.ass:append(self:colour(3, 'FE4365FF'))
+    self.ass:append('{\\bord1}')
+
+    self.ass:pos(0, 0)
+    self.ass:draw_start()
+    self.ass:round_rect_cw(
+        (screenx - box_width) / 2,  -- top left x
+        (screeny - box_height) / 2, -- top left y
+        (screenx + box_width) / 2,  -- bottom right x
+        (screeny + box_height) / 2, -- bottom right y
+        28                          -- border radius
+    )
+    self.ass:draw_stop()
+
+    -- message
+    self.ass:new_event()
+    self.ass:pos(screenx / 2, screeny / 2)
+
+    -- text colour
+    self.ass:append(self:colour(1, 'FFFFFFFF'))
+
+    -- bold, no border, font size, center align
+    self.ass:append('{\\b1}{\\bord0}{\\fs64}{\\an5}')
+    self.ass:append(self.message.content)
+end
+
+
+---------------------------------------------------------------------
+-- Utility function to work out the width of a string in pixels.
+-- Useful for creating container boxes.
+function tagger:string_pixel_width(text, upper_width, lower_width)
+    count = 0
+
+    for i=1, #text do
+        local s = text:sub(i, i)
+
+        if s == string.upper(s) then
+            count = count + upper_width
+        else
+            count = count + lower_width
+        end
+    end
+
+    return count
+end
+
+
 ---------------------------------------------------------------------
 -- Creates a tag if it doesn't exist.
 function tagger:create_tag(name)
     -- Stub: return `true` if tag was created.
 end
 
+
+---------------------------------------------------------------------
+-- The main draw function. This calls all render functions.
+function tagger:draw(screenx, screeny)
+    tagger.ass = assdraw.ass_new()
+
+    self:render_message(screenx, screeny)
+
+    return self.ass.text
+end
+
 ---------------------------------------------------------------------
 -- Deletes a tag instance on the timeline, if the tag is no longer
 -- associated with any time on the timeline - remove it entirely.
 function tagger:delete_tag()
-    self:message('Delete this tag? [y/n]')
+    self:show_message('Delete this tag? [y/n]', true)
 end
 
 ---------------------------------------------------------------------
 -- Switches the tagger into `input` mode in order to input a tag.
 function tagger:choose_tag()
     self.mode = 'input'
-    self:message('Enter a tag')
+    self:show_message('Enter a tag')
 
     self:remove_keybindings(self.normal_bindings)
     self:add_keybindings(self.enter_bindings)
@@ -90,9 +225,9 @@ function tagger:tag_input_handler(char)
 
             if self.input_tag_string:len() > 0 then
                 if self:create_tag(self.input_tag_string) then
-                    self:message(string.format('%q created and chosen', self.input_tag_string))
+                    self:show_message(string.format('%q created and chosen', self.input_tag_string))
                 else
-                    self:message(string.format('%q chosen', self.input_tag_string))
+                    self:show_message(string.format('%q chosen', self.input_tag_string))
                 end
 
                 self.chosen_tag = self.input_tag_string
@@ -109,7 +244,7 @@ function tagger:tag_input_handler(char)
     -- backspace
     elseif char == 'bs' then
         self.input_tag_string = self.input_tag_string:sub(1, -2)
-        self:message(string.format('Tag: %s', self.input_tag_string))
+        self:show_message(string.format('Tag: %s', self.input_tag_string))
     -- a-z, A-Z and dash (`-`)
     else
         if char == '-' then
@@ -125,7 +260,7 @@ function tagger:tag_input_handler(char)
         end
 
         self.input_tag_string = self.input_tag_string .. char:lower()
-        self:message(string.format('Tag: %s', self.input_tag_string))
+        self:show_message(string.format('Tag: %s', self.input_tag_string))
     end
 end
 
@@ -135,9 +270,9 @@ end
 -- to end it.
 function tagger:mark_tag()
     if self.marking_active then
-        self:message('Marking the end of a tag')
+        self:show_message('Marking the end of a tag')
     else
-        self:message('Marking the beginning of a tag')
+        self:show_message('Marking the beginning of a tag')
     end
 
     self.marking_active = not self.marking_active
@@ -151,9 +286,9 @@ function tagger:toggle_tag_hud()
     self.tag_hud_active = not self.tag_hud_active
 
     if self.tag_hud_active then
-        self:message('Tag heads up display activated')
+        self:show_message('Tag heads up display activated')
     else
-        self:message('Tag heads up display disabled')
+        self:show_message('Tag heads up display disabled')
     end
 end
 
@@ -162,7 +297,7 @@ end
 -- `on top` of a tag, if we're not it will look for a tag `in front`
 -- of our current position.
 function tagger:change_tag_in()
-    self:message('Change tag `in` time')
+    self:show_message('Change tag `in` time')
 end
 
 ---------------------------------------------------------------------
@@ -170,19 +305,19 @@ end
 -- of a tag, if we're not it will look for a tag `behind` our current
 -- position.
 function tagger:change_tag_out()
-    self:message('Change tag `out` time')
+    self:show_message('Change tag `out` time')
 end
 
 ---------------------------------------------------------------------
 -- Load all tags from a JSON file.
 function tagger:load_tags()
-    self:message('Load tags from file')
+    self:show_message('Load tags from file')
 end
 
 ---------------------------------------------------------------------
 -- Save all tags to a JSON file.
 function tagger:save_tags()
-    self:message('Save tags from file')
+    self:show_message('Save tags from file')
 end
 
 ---------------------------------------------------------------------
@@ -208,14 +343,29 @@ end
 ---------------------------------------------------------------------
 -- Toggles the tagger plugin and controls normal mode keybindings.
 function tagger:toggle_existence()
+    local screenx, screeny, aspect = self.mp.get_osd_size()
+
     self.active = not self.active
 
     if self.active then
-        self:message('Serkio activated', true)
+        self:show_message('Serkio activated', true)
         self:add_keybindings(self.normal_bindings)
+
+        -- enable gui (checks for gui updates every 100ms)
+        gui = self.mp.add_periodic_timer(0.1, function()
+            rendered = self:draw(screenx, screeny)
+
+            if self.rendered_string ~= rendered then
+                self.mp.set_osd_ass(screenx, screeny, rendered)
+                self.rendered_string = rendered
+            end
+        end)
     else
-        self:message('Serkio deactivated', true)
         self:remove_keybindings(self.normal_bindings)
+
+        -- disable gui
+        gui:kill()
+        self.mp.set_osd_ass(screenx, screeny, '')
     end
 end
 
@@ -267,5 +417,8 @@ tagger.mp.add_forced_key_binding(
     'toggle-tagger',
     function () return tagger:toggle_existence() end
 )
+
+-- call `clear_message` on startup to initialise a default message
+tagger:clear_message()
 
 return tagger
