@@ -9,6 +9,8 @@ tagger.tag_hud_active = false
 tagger.chosen_tag = ''
 tagger.input_tag_string = ''
 tagger.rendered_string = ''
+tagger.start_time = ''  -- for demo
+tagger.end_time = ''    -- for demo
 
 -- modes are: normal and input
 tagger.mode = 'normal'
@@ -183,10 +185,87 @@ end
 
 
 ---------------------------------------------------------------------
+-- Render the current tag
+function tagger:render_current_tag(screenx, screeny)
+    local tag = 'lumpy-space-princess'
+
+    -- Pixel counts for font size 35
+    local text_size = {upper_w=20, lower_w=15, height=32}
+
+    -- Box offset
+    local offset = {x=5, y=5}
+
+    local msg_pixel_width = self:string_pixel_width(
+        tag,
+        text_size.upper_w,
+        text_size.lower_w
+    )
+
+    local box_width = msg_pixel_width + text_size.upper_w
+    local box_height = text_size.height * 3
+
+    -- prevent an odd looking box for smaller tags
+    box_width = box_width < 200 and 200 or box_width
+
+    -- rounded rectangle box
+    self.ass:new_event()
+
+    -- background
+    self.ass:append(self:colour(1, 'FE4365FF'))
+
+    -- border
+    self.ass:append(self:colour(3, '83AF9BFF') .. '{\\bord5}')
+
+    self.ass:pos(0, 0)
+    self.ass:draw_start()
+    self.ass:round_rect_cw(
+        offset.x,               -- top left x
+        offset.y,               -- top left y
+        box_width + offset.x,   -- bottom right x
+        box_height + offset.y,  -- bottom right y
+        45                      -- border radius
+    )
+    self.ass:draw_stop()
+
+    -- tag text
+    self.ass:new_event()
+    self.ass:pos((box_width + offset.x) / 2, (box_height + offset.y) / 2 + 8)
+
+    -- text and shadow colours
+    self.ass:append(self:colour(1, '772231FF') .. self:colour(3, 'F96883FF'))
+
+    -- bold, border, font size, center align
+    self.ass:append('{\\b1}{\\bord0.5}{\\fs35}{\\an2}')
+    self.ass:append(tag)
+
+    -- time
+    self.ass:new_event()
+    self.ass:pos((box_width + offset.x) / 2, (box_height + offset.y) / 2 + 8)
+
+    -- text and shadow colours
+    self.ass:append(self:colour(1, '772231FF') .. self:colour(3, 'F96883FF'))
+
+    -- thin border, font size, center align
+    self.ass:append('{\\bord0.1}{\\fs25}{\\an8}')
+
+    if self.start_time == '' then
+        self.start_time = self.mp.get_property_osd('time-pos')
+        self.ass:append(self.start_time)
+    else
+        self.ass:append(self.start_time)
+    end
+
+    if self.end_time == '' then
+        self.ass:append(' — ' .. self.mp.get_property_osd('time-pos'))
+    end
+end
+
+---------------------------------------------------------------------
 -- The main draw function. This calls all render functions.
 function tagger:draw(screenx, screeny)
     tagger.ass = assdraw.ass_new()
 
+    self:render_current_tag(screenx, screeny)
     self:render_message(screenx, screeny)
 
     return self.ass.text
