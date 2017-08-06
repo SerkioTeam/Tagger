@@ -38,9 +38,17 @@ if not ass_loaded then
 end
 
 
-    if console then
-        self.mp.log('info', message)
-    end
+---------------------------------------------------------------------
+-- Converts RRGGBBAA to ASS format
+function tagger:colour(id, colour)
+    local alpha = string.format(
+        '\\%da&H%X&', id, 0xff - tonumber(colour:sub(7, 8), 16)
+    )
+
+    -- RGB to BGR
+    colour = colour:sub(5, 6) .. colour:sub(3, 4) .. colour:sub(1, 2)
+
+    return '{' .. alpha .. string.format('\\%dc&H%s&', id, colour) .. '}'
 end
 
 ---------------------------------------------------------------------

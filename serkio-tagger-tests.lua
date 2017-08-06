@@ -115,4 +115,14 @@ describe('Serkio tagger', function()
             end)
         end)
     end)
+    describe('utility functions', function()
+        local tagger = require('serkio-tagger')
+
+        it('`colour` should convert colours correctly', function()
+            assert.are_equal(
+                '{\\1a&HFF&\\1c&HCCBBAA&}',
+                tagger:colour(1, 'AABBCC00')
+            )
+        end)
+    end)
 end)
