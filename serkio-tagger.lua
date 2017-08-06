@@ -1,5 +1,6 @@
 local tagger = {}
 local mpv_loaded, mp = pcall(require, 'mp')
+local ass_loaded, assdraw = pcall(require, 'mp.assdraw')
 
 tagger.mp = mp
 tagger.active = false
@@ -16,16 +17,26 @@ tagger.mode = 'normal'
 if not mpv_loaded then
     tagger.mp = {}
 
-    function tagger.mp.osd_message(message) end
-    function tagger.mp.log(level, message) end
     function tagger.mp.add_forced_key_binding(key, name, fn) end
+    function tagger.mp.add_periodic_timer(time, fn) end
+    function tagger.mp.get_time() end
+    function tagger.mp.log(level, message) end
+    function tagger.mp.osd_message(message) end
     function tagger.mp.remove_key_binding(key, name, fn) end
 end
 
 ---------------------------------------------------------------------
--- Display message on screen and in console, if specified.
-function tagger:message(message, console)
-    self.mp.osd_message(message)
+-- Stub ASS library for running unit tests under `busted`
+if not ass_loaded then
+    tagger.ass = {}
+
+    function tagger.ass.append() end
+    function tagger.ass.draw_start() end
+    function tagger.ass.draw_stop() end
+    function tagger.ass.pos() end
+    function tagger.ass.round_rect_cw() end
+end
+
 
     if console then
         self.mp.log('info', message)
