@@ -449,8 +449,8 @@ function tagger:toggle_existence()
         self:show_message('Serkio activated', true)
         self:add_keybindings(self.normal_bindings)
 
-        -- enable gui (checks for gui updates every 100ms)
-        gui = self.mp.add_periodic_timer(0.1, function()
+        -- enable gui (checks for gui updates every 50ms)
+        gui = self.mp.add_periodic_timer(0.05, function()
             rendered = self:draw(screenx, screeny)
 
             if self.rendered_string ~= rendered then
