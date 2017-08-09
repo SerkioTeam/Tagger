@@ -9,11 +9,20 @@ tagger.tag_hud_active = false
 tagger.chosen_tag = ''
 tagger.input_tag_string = ''
 tagger.rendered_string = ''
-tagger.start_time = ''  -- for demo
-tagger.end_time = ''    -- for demo
 
 -- modes are: normal and input
 tagger.mode = 'normal'
+
+
+-- one of two current tag states:
+-- ∙ Actively marking a new tag
+-- ∙ Hovering over an existing tag
+tagger.current_tag = {
+    active=false,
+    marking=false,
+    start_time='',
+    end_time=''
+}
 
 -- only one message should be displayed at a time,
 -- this is why there isn't a queue of any kind.
@@ -206,8 +215,6 @@ end
 ---------------------------------------------------------------------
 -- Render the current tag
 function tagger:render_current_tag(screenx, screeny)
-    local tag = 'lumpy-space-princess'
-
     -- Pixel counts for font size 35
     local text_size = {upper_w=20, lower_w=15, height=32}
 
@@ -215,7 +222,7 @@ function tagger:render_current_tag(screenx, screeny)
     local offset = {x=5, y=5}
 
     local msg_pixel_width = self:string_pixel_width(
-        tag,
+        self.chosen_tag,
         text_size.upper_w,
         text_size.lower_w
     )
@@ -255,7 +262,7 @@ function tagger:render_current_tag(screenx, screeny)
 
     -- bold, border, font size, center align
     self.ass:append('{\\b1}{\\bord0.5}{\\fs35}{\\an2}')
-    self.ass:append(tag)
+    self.ass:append(self.chosen_tag)
 
     -- time
     self.ass:new_event()
@@ -267,14 +274,14 @@ function tagger:render_current_tag(screenx, screeny)
     -- thin border, font size, center align
     self.ass:append('{\\bord0.1}{\\fs25}{\\an8}')
 
-    if self.start_time == '' then
-        self.start_time = self.mp.get_property_osd('time-pos')
-        self.ass:append(self.start_time)
+    if self.current_tag.start_time == '' then
+        self.current_tag.start_time = self.mp.get_property_osd('time-pos')
+        self.ass:append(self.current_tag.start_time)
     else
-        self.ass:append(self.start_time)
+        self.ass:append(self.current_tag.start_time)
     end
 
-    if self.end_time == '' then
+    if self.current_tag.end_time == '' then
         self.ass:append(' — ' .. self.mp.get_property_osd('time-pos'))
     end
 end
