@@ -307,6 +307,17 @@ function tagger:choose_tag()
     self:add_keybindings(self.enter_bindings)
 end
 
+
+---------------------------------------------------------------------
+-- Select a tag. A tag needs to be `selected` in order for the user
+-- to create mark points and for tag info to be displayed in the top
+-- left hand corner.
+function tagger:select_tag(tag)
+    self.chosen_tag = tag
+    self:show_message(string.format('%q selected', tag), true)
+end
+
+
 ---------------------------------------------------------------------
 -- Takes input from the user so they can enter a tag name. It then
 -- creates that tag if necessary and `chooses` it, so when the user
@@ -322,13 +333,8 @@ function tagger:tag_input_handler(char)
             end
 
             if self.input_tag_string:len() > 0 then
-                if self:create_tag(self.input_tag_string) then
-                    self:show_message(string.format('%q created and chosen', self.input_tag_string))
-                else
-                    self:show_message(string.format('%q chosen', self.input_tag_string))
-                end
-
-                self.chosen_tag = self.input_tag_string
+                self:create_tag(self.input_tag_string)
+                self:select_tag(self.input_tag_string)
             end
         end
 
@@ -342,7 +348,7 @@ function tagger:tag_input_handler(char)
     -- backspace
     elseif char == 'bs' then
         self.input_tag_string = self.input_tag_string:sub(1, -2)
-        self:show_message(string.format('Tag: %s', self.input_tag_string))
+        self:show_message(self.input_tag_string)
     -- a-z, A-Z and dash (`-`)
     else
         if char == '-' then
@@ -358,7 +364,7 @@ function tagger:tag_input_handler(char)
         end
 
         self.input_tag_string = self.input_tag_string .. char:lower()
-        self:show_message(string.format('Tag: %s', self.input_tag_string))
+        self:show_message(self.input_tag_string)
     end
 end
 
