@@ -13,6 +13,8 @@ tagger.rendered_string = ''
 -- modes are: normal and input
 tagger.mode = 'normal'
 
+-- meta info and tag data for this media file
+tagger.data = {}
 
 -- one of two current tag states:
 -- ∙ Actively marking a new tag
@@ -202,6 +204,39 @@ function tagger:string_pixel_width(text, upper_width, lower_width)
     end
 
     return count
+end
+
+
+---------------------------------------------------------------------
+-- Loads the initial tag data into our plugin.
+function tagger:load_tag_data(path)
+    -- Stub: this will load the following data from a JSON file.
+    self.data = {
+        name='Adventure Time - 01.01 - Slumber Party Panic',
+        show='Adventure Time',
+        episode='S01E01',
+        movie='',
+        serkio_id='ATS01E01',
+        filename='01.01 - Slumber Party Panic.mp4',
+        checksum='2d08132872b9451798545b7abd8bea01',
+        duration='10:51',
+        tags={
+            ['jake']={
+                {1, 5},
+                {12, 13},
+                {15, 16}
+            },
+            ['finn']={
+                {1, 5},
+                {22, 26},
+                {38, 50}
+            },
+            ['princess-bubblegum']={
+                {100, 122},
+                {140, 145}
+            }
+        }
+    }
 end
 
 
