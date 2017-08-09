@@ -18,6 +18,16 @@ tagger.mode = 'normal'
 -- only one message should be displayed at a time,
 -- this is why there isn't a queue of any kind.
 tagger.message = {}
+tagger.message_styles = {
+    notification={
+        bg='FE4365B2',
+        border='FE4365FF'
+    },
+    warning={
+        bg='FF0000B3',
+        border='FF0000FF'
+    }
+}
 
 ---------------------------------------------------------------------
 -- Stub MPV library for running unit tests under `busted`
@@ -88,6 +98,11 @@ function tagger:show_message(message, time_bound, style)
     self.message.style = style or 'notification'
     self.message.active = true
 
+    -- kill old message timer so it won't interfere with this message
+    if message_timer then
+        message_timer:kill()
+    end
+
     -- start a periodic timer to clear the message when necessary
     if self.message.time_bound then
         local start_time = self.mp.get_time()
@@ -127,10 +142,14 @@ function tagger:render_message(screenx, screeny)
     self.ass:new_event()
 
     -- background
-    self.ass:append(self:colour(1, 'FE4365B2'))
+    self.ass:append(
+        self:colour(1, self.message_styles[self.message.style].bg)
+    )
 
     -- border
-    self.ass:append(self:colour(3, 'FE4365FF'))
+    self.ass:append(
+        self:colour(3, self.message_styles[self.message.style].border)
+    )
     self.ass:append('{\\bord1}')
 
     self.ass:pos(0, 0)
@@ -275,7 +294,7 @@ end
 -- Deletes a tag instance on the timeline, if the tag is no longer
 -- associated with any time on the timeline - remove it entirely.
 function tagger:delete_tag()
-    self:show_message('Delete this tag? [y/n]', true)
+    self:show_message('Delete this tag? [y/n]', false, 'warning')
 end
 
 ---------------------------------------------------------------------
