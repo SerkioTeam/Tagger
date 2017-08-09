@@ -206,6 +206,16 @@ function tagger:string_pixel_width(text, upper_width, lower_width)
     return count
 end
 
+---------------------------------------------------------------------
+-- Utility function for splitting strings on a `sep` seperator.
+function string:split(sep)
+    local sep, fields = sep or ':', {}
+    local pattern = string.format('([^%s]+)', sep)
+    self:gsub(pattern, function(c) fields[#fields+1] = c end)
+
+    return fields
+end
+
 
 ---------------------------------------------------------------------
 -- Loads the initial tag data into our plugin.
@@ -237,6 +247,21 @@ function tagger:load_tag_data(path)
             }
         }
     }
+end
+
+
+---------------------------------------------------------------------
+-- Converts `HH:MM:SS' time strings to seconds.
+function tagger:time_to_seconds(time_string)
+    local t = time_string:split()
+    return tonumber(t[1]) * 3600 + tonumber(t[2]) * 60 + tonumber(t[3])
+end
+
+
+---------------------------------------------------------------------
+-- Converts seconds to a time string of `HH:MM:SS'.
+function tagger:seconds_to_time(seconds)
+    return os.date('!%X', seconds)
 end
 
 
