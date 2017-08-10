@@ -251,17 +251,31 @@ end
 
 
 ---------------------------------------------------------------------
--- Converts `HH:MM:SS' time strings to seconds.
-function tagger:time_to_seconds(time_string)
+-- Converts `HH:MM:SS' time strings to milliseconds.
+function tagger:time_to_ms(time_string)
     local t = time_string:split()
-    return tonumber(t[1]) * 3600 + tonumber(t[2]) * 60 + tonumber(t[3])
+    local sec_ms = t[3]:split('.')
+
+    return math.floor(
+       tonumber(t[1]) * 3600000 +
+       tonumber(t[2]) * 60000 +
+       tonumber(sec_ms[1]) * 1000 +
+       tonumber(sec_ms[2])
+   )
 end
 
 
 ---------------------------------------------------------------------
--- Converts seconds to a time string of `HH:MM:SS'.
-function tagger:seconds_to_time(seconds)
-    return os.date('!%X', seconds)
+-- Converts milliseconds to a time string of `HH:MM:SS.mmm'.
+function tagger:ms_to_time(ms)
+    local remaining_ms = math.fmod(ms, 1000)
+    local seconds = (ms - remaining_ms) / 1000
+
+    return string.format(
+        '%s.%03d',
+        os.date('!%X', seconds),
+        remaining_ms
+    )
 end
 
 
