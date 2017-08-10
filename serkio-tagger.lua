@@ -291,7 +291,7 @@ function tagger:render_current_tag(screenx, screeny)
     local box_height = text_size.height * 3
 
     -- prevent an odd looking box for smaller tags
-    box_width = box_width < 200 and 200 or box_width
+    box_width = box_width < 240 and 240 or box_width
 
     -- rounded rectangle box
     self.ass:new_event()
@@ -326,7 +326,10 @@ function tagger:render_current_tag(screenx, screeny)
 
     -- time
     self.ass:new_event()
-    self.ass:pos((box_width + offset.x) / 2, (box_height + offset.y) / 2 + 8)
+    self.ass:pos(
+        (box_width + offset.x) / 2 + 4, -- the `4` is a positional fudge
+        (box_height + offset.y) / 2 + 8 -- the `8` is a positional fudge
+    )
 
     -- text and shadow colours
     self.ass:append(self:colour(1, '772231FF') .. self:colour(3, 'F96883FF'))
@@ -335,14 +338,14 @@ function tagger:render_current_tag(screenx, screeny)
     self.ass:append('{\\bord0.1}{\\fs25}{\\an8}')
 
     if self.current_tag.start_time == '' then
-        self.current_tag.start_time = self.mp.get_property_osd('time-pos')
+        self.current_tag.start_time = self.mp.get_property_osd('playtime-remaining/full')
         self.ass:append(self.current_tag.start_time)
     else
         self.ass:append(self.current_tag.start_time)
     end
 
     if self.current_tag.end_time == '' then
-        self.ass:append(' — ' .. self.mp.get_property_osd('time-pos'))
+        self.ass:append(' — ' .. self.mp.get_property_osd('playtime-remaining/full'))
     end
 end
 
