@@ -34,11 +34,12 @@ describe('Serkio tagger', function()
                 assert.are_equal('finn', tagger.chosen_tag)
             end)
 
-            it('Should try to create a tag',
+            it('Should select a tag',
             function()
-                stub(tagger, 'create_tag')
+                stub(tagger, 'select_tag')
                 input({'j', 'a', 'k', 'e', 'enter'})
-                assert.stub(tagger.create_tag).was.called()
+                assert.stub(tagger.select_tag).was.called()
+                tagger.select_tag:revert()
             end)
         end)
 
@@ -137,6 +138,73 @@ describe('Serkio tagger', function()
             assert.are_equal(3007, tagger:time_to_ms('00:00:03.007'))
             assert.are_equal(183007, tagger:time_to_ms('00:03:03.007'))
             assert.are_equal(3783007, tagger:time_to_ms('01:03:03.007'))
+        end)
+    end)
+
+    describe('tag data api', function()
+        local tagger = require('serkio-tagger')
+
+        it('`remove_tag` should remove a tag instance', function()
+            tagger.data.tags = {jake={{1, 5}, {12, 13}}}
+
+            tagger:remove_tag('jake', 1, 5)
+            assert.are_same({jake={{12, 13}}}, tagger.data.tags)
+        end)
+
+        it('`remove_tag` should remove a tag if no more instances exist', function()
+            tagger.data.tags = {jake={{1, 5}}, finn={{1, 5}}}
+
+            tagger:remove_tag('jake', 1, 5)
+            assert.are_same({finn={{1, 5}}}, tagger.data.tags)
+        end)
+
+        it('`add_tag` should add a tag instance', function()
+            tagger.data.tags = {}
+
+            tagger:add_tag('jake', 1, 5)
+            assert.are_same({jake={{1, 5}}}, tagger.data.tags)
+
+            tagger:add_tag('jake', 3, 6)
+            assert.are_same({jake={{1, 5}, {3, 6}}}, tagger.data.tags)
+        end)
+
+        it('`add_tag` should order the start position before the end position', function()
+            tagger.data.tags = {}
+
+            tagger:add_tag('jake', 5, 1)
+            assert.are_same({jake={{1, 5}}}, tagger.data.tags)
+        end)
+
+        it('`add_tag` should order tags chronologically', function()
+            tagger.data.tags = {}
+            tagger:add_tag('jake', 3, 5)
+            tagger:add_tag('jake', 1, 2)
+            tagger:add_tag('jake', 7, 9)
+            assert.are_same({jake={{1, 2}, {3, 5}, {7, 9}}}, tagger.data.tags)
+        end)
+
+        it('`add_tag` should merge tags if they overlap', function()
+            tagger.data.tags = {jake={{3, 4}, {5, 7}}}
+            tagger:add_tag('jake', 1, 3)
+            assert.are_same({jake={{1, 4}, {5, 7}}}, tagger.data.tags)
+        end)
+
+        it('`order_tags` should order all tags if called without tag name', function()
+            tagger.data.tags = {jake={{5, 7}, {3, 4}}, finn={{2, 3}, {1, 2}}}
+            tagger:order_tags()
+            assert.are_same(
+                {jake={{3, 4}, {5, 7}}, finn={{1, 2}, {2, 3}}},
+                tagger.data.tags
+            )
+        end)
+
+        it('`order_tags` should only order a single tag if called with a tag name', function()
+            tagger.data.tags = {jake={{5, 7}, {3, 4}}, finn={{2, 3}, {1, 2}}}
+            tagger:order_tags('jake')
+            assert.are_same(
+                {jake={{3, 4}, {5, 7}}, finn={{2, 3}, {1, 2}}},
+                tagger.data.tags
+            )
         end)
     end)
 end)

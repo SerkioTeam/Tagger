@@ -211,7 +211,7 @@ end
 function string:split(sep)
     local sep, fields = sep or ':', {}
     local pattern = string.format('([^%s]+)', sep)
-    self:gsub(pattern, function(c) fields[#fields+1] = c end)
+    self:gsub(pattern, function(c) fields[#fields + 1] = c end)
 
     return fields
 end
@@ -247,6 +247,83 @@ function tagger:load_tag_data(path)
             }
         }
     }
+end
+
+
+---------------------------------------------------------------------
+-- Adds a tag instance. This also merges tags if they overlap.
+function tagger:add_tag(tag, pos_one, pos_two)
+    local tags = self.data.tags[tag]
+
+    if tags == nil then
+        tags = {}
+    end
+
+    -- start should always come before the end
+    local points = {pos_one, pos_two}
+    table.sort(points)
+
+    -- merge overlapping tags
+    local high = points[2]
+
+    for k, v in pairs(tags) do
+        local t = tags[k]
+
+        if t[1] >= points[1] and t[1] <= points[2] then
+            if t[2] > high then
+                high = t[2]
+            end
+
+            table.remove(tags, k)
+        end
+    end
+
+    -- add the new tag
+    tags[#tags + 1] = {points[1], high}
+
+    self.data.tags[tag] = tags
+
+    self:order_tags(tag)
+end
+
+
+---------------------------------------------------------------------
+-- Deletes a tag instance. If necessary the tag itself is deleted.
+function tagger:remove_tag(tag, pos_one, pos_two)
+    local tags = self.data.tags[tag]
+
+    for k, v in pairs(tags) do
+        local t = tags[k]
+
+        if t[1] == pos_one and t[2] == pos_two then
+            table.remove(tags, k)
+        end
+    end
+
+    if #tags == 0 then
+        tags = nil
+    end
+
+    self.data.tags[tag] = tags
+end
+
+
+---------------------------------------------------------------------
+-- Orders tag instances by start position. Tag name optional, if not
+-- provided it will order all tags.
+function tagger:order_tags(tag)
+    local tags = self.data.tags
+
+    if tag == nil then
+        for k, v in pairs(tags) do
+            local t = tags[k]
+            table.sort(t, function(a, b) return a[1] < b[1] end)
+        end
+    else
+        table.sort(tags[tag], function(a, b) return a[1] < b[1] end)
+    end
+
+    self.data.tags = tags
 end
 
 
@@ -417,7 +494,6 @@ function tagger:tag_input_handler(char)
             end
 
             if self.input_tag_string:len() > 0 then
-                self:create_tag(self.input_tag_string)
                 self:select_tag(self.input_tag_string)
             end
         end
