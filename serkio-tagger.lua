@@ -352,14 +352,14 @@ function tagger:render_current_tag(screenx, screeny)
     self.ass:append('{\\bord0.1}{\\fs25}{\\an8}')
 
     if self.current_tag.start_time == '' then
-        self.current_tag.start_time = self.mp.get_property_osd('playtime-remaining/full')
+        self.current_tag.start_time = self.mp.get_property_osd('playback-time/full')
         self.ass:append(self.current_tag.start_time)
     else
         self.ass:append(self.current_tag.start_time)
     end
 
     if self.current_tag.end_time == '' then
-        self.ass:append(' — ' .. self.mp.get_property_osd('playtime-remaining/full'))
+        self.ass:append(' — ' .. self.mp.get_property_osd('playback-time/full'))
     end
 end
 
