@@ -532,6 +532,7 @@ end
 -- Toggles the tagger plugin and controls normal mode keybindings.
 function tagger:toggle_existence()
     local screenx, screeny, aspect = self.mp.get_osd_size()
+    local last_tick = ''
 
     self.active = not self.active
 
@@ -548,12 +549,28 @@ function tagger:toggle_existence()
                 self.rendered_string = rendered
             end
         end)
+
+        -- frame by frame tick event to retrieve tag info
+        self.mp.register_event('tick', function()
+            current_tick = self.mp.get_property_osd('estimated-frame-number')
+
+            -- only continue if we've changed frames
+            if last_tick == current_tick then
+                return
+            end
+
+            last_tick = current_tick
+        end)
     else
         self:remove_keybindings(self.normal_bindings)
 
         -- disable gui
         gui:kill()
         self.mp.set_osd_ass(screenx, screeny, '')
+
+        -- disable ticker
+        self.mp.unregister_event('tick')
+        last_tick = ''
     end
 end
 
