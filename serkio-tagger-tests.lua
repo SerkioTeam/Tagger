@@ -206,5 +206,17 @@ describe('Serkio tagger', function()
                 tagger.data.tags
             )
         end)
+
+        it('`push_tag` should push a tag instances end position forward', function()
+            tagger.data.tags = {jake={{1, 5}}}
+            tagger:push_tag('jake', 1, 5, 6)
+            assert.are_same({jake={{1, 6}}}, tagger.data.tags)
+        end)
+
+        it('`pull_tag` should pull a tag instances start position backward', function()
+            tagger.data.tags = {jake={{2, 5}}}
+            tagger:pull_tag('jake', 2, 5, 1)
+            assert.are_same({jake={{1, 5}}}, tagger.data.tags)
+        end)
     end)
 end)

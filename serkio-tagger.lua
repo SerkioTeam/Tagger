@@ -309,6 +309,38 @@ end
 
 
 ---------------------------------------------------------------------
+-- Change a tag instances end position to `new_end_pos`.
+function tagger:push_tag(tag, start_pos, end_pos, new_end_pos)
+    local tags = self.data.tags[tag]
+
+    for k, v in pairs(tags) do
+        local t = tags[k]
+
+        if t[1] == start_pos and t[2] == end_pos then
+            tags[k] = {start_pos, new_end_pos}
+        end
+    end
+end
+
+
+---------------------------------------------------------------------
+-- Change a tag instances start position to `new_start_pos`.
+function tagger:pull_tag(tag, start_pos, end_pos, new_start_pos)
+    local tags = self.data.tags[tag]
+
+    for k, v in pairs(tags) do
+        local t = tags[k]
+
+        if t[1] == start_pos and t[2] == end_pos then
+            tags[k] = {new_start_pos, end_pos}
+        end
+    end
+
+    self:order_tags(tag)
+end
+
+
+---------------------------------------------------------------------
 -- Orders tag instances by start position. Tag name optional, if not
 -- provided it will order all tags.
 function tagger:order_tags(tag)
