@@ -245,5 +245,10 @@ describe('Serkio tagger', function()
             tagger.data.tags = {jake={{6, 9}, {1, 3}}, finn={{3, 4}}, treehouse={{2, 3}}}
             assert.are_same({'jake', 'treehouse'}, tagger:get_tags(2))
         end)
+
+        it('`get_tag_times` should return the start and end times of any matching tag instance', function()
+            tagger.data.tags = {jake={{1, 3}, {5, 7}}, finn={{1, 2}}}
+            assert.are_same({5, 7}, tagger:get_tag_times('jake', 6))
+        end)
     end)
 end)

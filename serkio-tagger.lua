@@ -4,7 +4,6 @@ local ass_loaded, assdraw = pcall(require, 'mp.assdraw')
 
 tagger.mp = mp
 tagger.active = false
-tagger.marking_active = false
 tagger.tag_hud_active = false
 tagger.chosen_tag = ''
 tagger.input_tag_string = ''
@@ -377,6 +376,22 @@ end
 
 
 ---------------------------------------------------------------------
+-- Searches for a tag that exists within `position`, then returns
+-- the matching tag instances start and end time.
+function tagger:get_tag_times(tag, position)
+    if self.data.tags[tag] == nil then
+        return
+    end
+
+    for i=1, #self.data.tags[tag] do
+        if self.tag_exists_at(self.data.tags[tag][i], position) then
+            return self.data.tags[tag][i]
+        end
+    end
+end
+
+
+---------------------------------------------------------------------
 -- Returns `true` if tag is equal to `t1` and `t2`.
 function tagger.tag_is_equal(tag, t1, t2)
     return tag[1] == t1 and tag[2] == t2
@@ -429,6 +444,10 @@ end
 ---------------------------------------------------------------------
 -- Render the current tag
 function tagger:render_current_tag()
+    if not self.current_tag.active then
+        return
+    end
+
     -- Pixel counts for font size 35
     local text_size = {upper_w=20, lower_w=15, height=32}
 
@@ -491,16 +510,8 @@ function tagger:render_current_tag()
     -- thin border, font size, center align
     self.ass:append('{\\bord0.1}{\\fs25}{\\an8}')
 
-    if self.current_tag.start_time == '' then
-        self.current_tag.start_time = self.mp.get_property_osd('playback-time/full')
-        self.ass:append(self.current_tag.start_time)
-    else
-        self.ass:append(self.current_tag.start_time)
-    end
-
-    if self.current_tag.end_time == '' then
-        self.ass:append(' — ' .. self.mp.get_property_osd('playback-time/full'))
-    end
+    self.ass:append(self.current_tag.start_time)
+    self.ass:append(' — ' .. self.current_tag.end_time)
 end
 
 ---------------------------------------------------------------------
@@ -596,13 +607,21 @@ end
 -- This must be pressed twice, once to begin the selection and again
 -- to end it.
 function tagger:mark_tag()
-    if self.marking_active then
-        self:show_message('Marking the end of a tag')
+    if self.current_tag.marking then
+        self:show_message('Marking the end of a tag', true)
+        self:add_tag(
+            self.chosen_tag,
+            self.time_to_ms(self.current_tag.start_time),
+            self.time_to_ms(self.current_tag.end_time)
+        )
     else
-        self:show_message('Marking the beginning of a tag')
+        self:show_message('Marking the beginning of a tag', true)
+        self.current_tag.start_time = self.mp.get_property_osd('playback-time/full')
+        self.current_tag.end_time = self.current_tag.start_time
     end
 
-    self.marking_active = not self.marking_active
+    self.current_tag.active = not self.current_tag.active
+    self.current_tag.marking = not self.current_tag.marking
 end
 
 ---------------------------------------------------------------------
@@ -679,7 +698,7 @@ function tagger:toggle_existence()
         self:show_message('Serkio activated', true)
         self:add_keybindings(self.normal_bindings)
 
-        -- enable gui (checks for gui updates every 50ms)
+        -- enable GUI (checks for GUI updates every 50ms)
         gui = self.mp.add_periodic_timer(0.05, function()
             rendered = self:draw(screenx, screeny)
 
@@ -691,6 +710,7 @@ function tagger:toggle_existence()
 
         -- frame by frame tick event to retrieve tag info
         self.mp.register_event('tick', function()
+            local pos = self.mp.get_property_osd('playback-time/full')
             current_tick = self.mp.get_property_osd('estimated-frame-number')
 
             -- only continue if we've changed frames
@@ -698,12 +718,29 @@ function tagger:toggle_existence()
                 return
             end
 
+            -- marking active
+            if self.current_tag.active and self.current_tag.marking then
+                self.current_tag.end_time = pos
+            else
+                local tag_times = self:get_tag_times(self.chosen_tag, self.time_to_ms(pos))
+
+                -- we are hovering over an existing tag
+                if tag_times ~= nil then
+                    self.current_tag.active = true
+                    self.current_tag.start_time = self.ms_to_time(tag_times[1])
+                    self.current_tag.end_time = self.ms_to_time(tag_times[2])
+                -- we have just hovered past an existing tag
+                elseif self.current_tag.active then
+                    self.current_tag.active = false
+                end
+            end
+
             last_tick = current_tick
         end)
     else
         self:remove_keybindings(self.normal_bindings)
 
-        -- disable gui
+        -- disable GUI
         gui:kill()
         self.mp.set_osd_ass(screenx, screeny, '')
 
@@ -764,5 +801,7 @@ tagger.mp.add_forced_key_binding(
 
 -- call `clear_message` on startup to initialise a default message
 tagger:clear_message()
+
+tagger:load_tag_data()
 
 return tagger
