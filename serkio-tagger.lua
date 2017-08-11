@@ -68,7 +68,7 @@ end
 
 ---------------------------------------------------------------------
 -- Converts RRGGBBAA to ASS format
-function tagger:colour(id, colour)
+function tagger.colour(id, colour)
     local alpha = string.format(
         '\\%da&H%X&', id, 0xff - tonumber(colour:sub(7, 8), 16)
     )
@@ -110,7 +110,7 @@ function tagger:show_message(message, time_bound, style)
     self.message.active = true
 
     -- kill old message timer so it won't interfere with this message
-    if message_timer then
+    if message_timer ~= nil then
         message_timer:kill()
     end
 
@@ -190,7 +190,7 @@ end
 ---------------------------------------------------------------------
 -- Utility function to work out the width of a string in pixels.
 -- Useful for creating container boxes.
-function tagger:string_pixel_width(text, upper_width, lower_width)
+function tagger.string_pixel_width(text, upper_width, lower_width)
     local count = 0
 
     for i=1, #text do
@@ -252,7 +252,7 @@ end
 
 ---------------------------------------------------------------------
 -- Adds a tag instance. This also merges tags if they overlap.
-function tagger:add_tag(tag, pos_one, pos_two)
+function tagger:add_tag(tag, t1, t2)
     local tags = self.data.tags[tag]
 
     if tags == nil then
@@ -260,18 +260,16 @@ function tagger:add_tag(tag, pos_one, pos_two)
     end
 
     -- start should always come before the end
-    local points = {pos_one, pos_two}
+    local points = {t1, t2}
     table.sort(points)
 
     -- merge overlapping tags
     local high = points[2]
 
     for k, v in pairs(tags) do
-        local t = tags[k]
-
-        if t[1] >= points[1] and t[1] <= points[2] then
-            if t[2] > high then
-                high = t[2]
+        if v[1] >= points[1] and v[1] <= points[2] then
+            if v[2] > high then
+                high = v[2]
             end
 
             table.remove(tags, k)
@@ -289,11 +287,11 @@ end
 
 ---------------------------------------------------------------------
 -- Deletes a tag instance. If necessary the tag itself is deleted.
-function tagger:remove_tag(tag, pos_one, pos_two)
+function tagger:remove_tag(tag, t1, t2)
     local tags = self.data.tags[tag]
 
     for k, v in pairs(tags) do
-        if self:tag_is_equal(tags[k], pos_one, pos_two) then
+        if self.tag_is_equal(v, t1, t2) then
             table.remove(tags, k)
         end
     end
@@ -307,26 +305,26 @@ end
 
 
 ---------------------------------------------------------------------
--- Change a tag instances end position to `new_end_pos`.
-function tagger:push_tag(tag, start_pos, end_pos, new_end_pos)
+-- Change a tag instances end position to `new_t2`.
+function tagger:push_tag(tag, t1, t2, new_t2)
     local tags = self.data.tags[tag]
 
     for k, v in pairs(tags) do
-        if self:tag_is_equal(tags[k], start_pos, end_pos) then
-            tags[k] = {start_pos, new_end_pos}
+        if self.tag_is_equal(v, t1, t2) then
+            tags[k] = {t1, new_t2}
         end
     end
 end
 
 
 ---------------------------------------------------------------------
--- Change a tag instances start position to `new_start_pos`.
-function tagger:pull_tag(tag, start_pos, end_pos, new_start_pos)
+-- Change a tag instances start position to `new_t1`.
+function tagger:pull_tag(tag, t1, t2, new_t1)
     local tags = self.data.tags[tag]
 
     for k, v in pairs(tags) do
-        if self:tag_is_equal(tags[k], start_pos, end_pos) then
-            tags[k] = {new_start_pos, end_pos}
+        if self.tag_is_equal(v, t1, t2) then
+            tags[k] = {new_t1, t2}
         end
     end
 
@@ -342,8 +340,7 @@ function tagger:order_tags(tag)
 
     if tag == nil then
         for k, v in pairs(tags) do
-            local t = tags[k]
-            table.sort(t, function(a, b) return a[1] < b[1] end)
+            table.sort(tags[k], function(a, b) return a[1] < b[1] end)
         end
     else
         table.sort(tags[tag], function(a, b) return a[1] < b[1] end)
@@ -354,15 +351,15 @@ end
 
 
 ---------------------------------------------------------------------
--- Returns `true` if tag is equal to `start` and `end`.
-function tagger:tag_is_equal(tag, start_pos, end_pos)
-    return tag[1] == start_pos and tag[2] == end_pos
+-- Returns `true` if tag appears within `t1` and `t2`.
+function tagger.tag_is_equal(tag, t1, t2)
+    return tag[1] == t1 and tag[2] == t2
 end
 
 
 ---------------------------------------------------------------------
 -- Converts `HH:MM:SS' time strings to milliseconds.
-function tagger:time_to_ms(time_string)
+function tagger.time_to_ms(time_string)
     local t = time_string:split()
     local sec_ms = t[3]:split('.')
 
@@ -391,14 +388,14 @@ end
 
 ---------------------------------------------------------------------
 -- Creates a tag if it doesn't exist.
-function tagger:create_tag(name)
+function tagger.create_tag(name)
     -- Stub: return `true` if tag was created.
 end
 
 
 ---------------------------------------------------------------------
 -- Render the current tag
-function tagger:render_current_tag(screenx, screeny)
+function tagger:render_current_tag()
     -- Pixel counts for font size 35
     local text_size = {upper_w=20, lower_w=15, height=32}
 
@@ -421,10 +418,10 @@ function tagger:render_current_tag(screenx, screeny)
     self.ass:new_event()
 
     -- background
-    self.ass:append(self:colour(1, 'FE4365FF'))
+    self.ass:append(self.colour(1, 'FE4365FF'))
 
     -- border
-    self.ass:append(self:colour(3, '83AF9BFF') .. '{\\bord5}')
+    self.ass:append(self.colour(3, '83AF9BFF') .. '{\\bord5}')
 
     self.ass:pos(0, 0)
     self.ass:draw_start()
@@ -442,7 +439,7 @@ function tagger:render_current_tag(screenx, screeny)
     self.ass:pos((box_width + offset.x) / 2, (box_height + offset.y) / 2 + 8)
 
     -- text and shadow colours
-    self.ass:append(self:colour(1, '772231FF') .. self:colour(3, 'F96883FF'))
+    self.ass:append(self.colour(1, '772231FF') .. self.colour(3, 'F96883FF'))
 
     -- bold, border, font size, center align
     self.ass:append('{\\b1}{\\bord0.5}{\\fs35}{\\an2}')
@@ -456,7 +453,7 @@ function tagger:render_current_tag(screenx, screeny)
     )
 
     -- text and shadow colours
-    self.ass:append(self:colour(1, '772231FF') .. self:colour(3, 'F96883FF'))
+    self.ass:append(self.colour(1, '772231FF') .. self.colour(3, 'F96883FF'))
 
     -- thin border, font size, center align
     self.ass:append('{\\bord0.1}{\\fs25}{\\an8}')
@@ -478,7 +475,7 @@ end
 function tagger:draw(screenx, screeny)
     tagger.ass = assdraw.ass_new()
 
-    self:render_current_tag(screenx, screeny)
+    self:render_current_tag()
     self:render_message(screenx, screeny)
 
     return self.ass.text
@@ -640,7 +637,7 @@ end
 ---------------------------------------------------------------------
 -- Toggles the tagger plugin and controls normal mode keybindings.
 function tagger:toggle_existence()
-    local screenx, screeny, aspect = self.mp.get_osd_size()
+    local screenx, screeny, _ = self.mp.get_osd_size()
     local last_tick = ''
 
     self.active = not self.active
@@ -715,7 +712,7 @@ tagger.enter_bindings = {
     }
 }
 
-letters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-'
+local letters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-'
 
 for i = 1, letters:len() do
     local c = letters:sub(i, i)

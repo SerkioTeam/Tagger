@@ -122,7 +122,7 @@ describe('Serkio tagger', function()
         it('`colour` should convert colours correctly', function()
             assert.are_equal(
                 '{\\1a&HFF&\\1c&HCCBBAA&}',
-                tagger:colour(1, 'AABBCC00')
+                tagger.colour(1, 'AABBCC00')
             )
         end)
     end)
@@ -134,10 +134,10 @@ describe('Serkio tagger', function()
         end)
 
         it('`time_to_ms` should convert a `HH:MM:SS.mmm` time string to milliseconds', function()
-            assert.are_equal(7, tagger:time_to_ms('00:00:00.007'))
-            assert.are_equal(3007, tagger:time_to_ms('00:00:03.007'))
-            assert.are_equal(183007, tagger:time_to_ms('00:03:03.007'))
-            assert.are_equal(3783007, tagger:time_to_ms('01:03:03.007'))
+            assert.are_equal(7, tagger.time_to_ms('00:00:00.007'))
+            assert.are_equal(3007, tagger.time_to_ms('00:00:03.007'))
+            assert.are_equal(183007, tagger.time_to_ms('00:03:03.007'))
+            assert.are_equal(3783007, tagger.time_to_ms('01:03:03.007'))
         end)
     end)
 
