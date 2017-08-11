@@ -339,7 +339,7 @@ function tagger:order_tags(tag)
     local tags = self.data.tags
 
     if tag == nil then
-        for k, v in pairs(tags) do
+        for k, _ in pairs(tags) do
             table.sort(tags[k], function(a, b) return a[1] < b[1] end)
         end
     else
@@ -351,9 +351,42 @@ end
 
 
 ---------------------------------------------------------------------
--- Returns `true` if tag appears within `t1` and `t2`.
+-- Returns a table of all tag names. The `position` argument is
+-- optional, if provided it will only return tags which have
+-- instances existing within `position` on the timeline.
+function tagger:get_tags(position)
+    local tags = {}
+
+    for k, v in pairs(self.data.tags) do
+        if position == nil then
+            table.insert(tags, k)
+        else
+            for i=1, #v do
+                if self.tag_exists_at(v[i], position) then
+                    table.insert(tags, k)
+                    break
+                end
+            end
+        end
+    end
+
+    table.sort(tags)
+
+    return tags
+end
+
+
+---------------------------------------------------------------------
+-- Returns `true` if tag is equal to `t1` and `t2`.
 function tagger.tag_is_equal(tag, t1, t2)
     return tag[1] == t1 and tag[2] == t2
+end
+
+
+---------------------------------------------------------------------
+-- Returns `true` if tag appears at `t`.
+function tagger.tag_exists_at(tag, t)
+    return t >= tag[1] and t <= tag[2]
 end
 
 
@@ -374,7 +407,7 @@ end
 
 ---------------------------------------------------------------------
 -- Converts milliseconds to a time string of `HH:MM:SS.mmm'.
-function tagger:ms_to_time(ms)
+function tagger.ms_to_time(ms)
     local remaining_ms = math.fmod(ms, 1000)
     local seconds = (ms - remaining_ms) / 1000
 

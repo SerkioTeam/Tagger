@@ -130,7 +130,7 @@ describe('Serkio tagger', function()
         local tagger = require('serkio-tagger')
 
         it('`ms_to_time` should convert milliseconds to `HH:MM:SS.mmm` format', function()
-            assert.are_equal('01:03:03.007', tagger:ms_to_time(3783007))
+            assert.are_equal('01:03:03.007', tagger.ms_to_time(3783007))
         end)
 
         it('`time_to_ms` should convert a `HH:MM:SS.mmm` time string to milliseconds', function()
@@ -217,6 +217,33 @@ describe('Serkio tagger', function()
             tagger.data.tags = {jake={{2, 5}}}
             tagger:pull_tag('jake', 2, 5, 1)
             assert.are_same({jake={{1, 5}}}, tagger.data.tags)
+        end)
+
+        it('`tag_is_equal` should return true if a tag is equal to time positions', function()
+            assert.is_true(tagger.tag_is_equal({1, 3}, 1, 3))
+        end)
+
+        it('`tag_is_equal` should return false if a tag is not equal to time positions', function()
+            assert.is_false(tagger.tag_is_equal({2, 3}, 1, 3))
+        end)
+
+        it('`tag_exists_at` should return true if a tag exists at a time position', function()
+            assert.is_true(tagger.tag_exists_at({1, 5}, 4))
+        end)
+
+        it('`tag_exists_at` should return false if a tag does not exist at a time position', function()
+            assert.is_false(tagger.tag_exists_at({2, 5}, 1))
+            assert.is_false(tagger.tag_exists_at({2, 5}, 6))
+        end)
+
+        it('`get_tags` should return a table of all tags', function()
+            tagger.data.tags = {jake={}, finn={}, treehouse={}}
+            assert.are_same({'finn', 'jake', 'treehouse'}, tagger:get_tags())
+        end)
+
+        it('`get_tags` should return a table of all tags which exist at a time position', function()
+            tagger.data.tags = {jake={{6, 9}, {1, 3}}, finn={{3, 4}}, treehouse={{2, 3}}}
+            assert.are_same({'jake', 'treehouse'}, tagger:get_tags(2))
         end)
     end)
 end)
