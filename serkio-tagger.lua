@@ -293,9 +293,7 @@ function tagger:remove_tag(tag, pos_one, pos_two)
     local tags = self.data.tags[tag]
 
     for k, v in pairs(tags) do
-        local t = tags[k]
-
-        if t[1] == pos_one and t[2] == pos_two then
+        if self:tag_is_equal(tags[k], pos_one, pos_two) then
             table.remove(tags, k)
         end
     end
@@ -314,9 +312,7 @@ function tagger:push_tag(tag, start_pos, end_pos, new_end_pos)
     local tags = self.data.tags[tag]
 
     for k, v in pairs(tags) do
-        local t = tags[k]
-
-        if t[1] == start_pos and t[2] == end_pos then
+        if self:tag_is_equal(tags[k], start_pos, end_pos) then
             tags[k] = {start_pos, new_end_pos}
         end
     end
@@ -329,9 +325,7 @@ function tagger:pull_tag(tag, start_pos, end_pos, new_start_pos)
     local tags = self.data.tags[tag]
 
     for k, v in pairs(tags) do
-        local t = tags[k]
-
-        if t[1] == start_pos and t[2] == end_pos then
+        if self:tag_is_equal(tags[k], start_pos, end_pos) then
             tags[k] = {new_start_pos, end_pos}
         end
     end
@@ -356,6 +350,13 @@ function tagger:order_tags(tag)
     end
 
     self.data.tags = tags
+end
+
+
+---------------------------------------------------------------------
+-- Returns `true` if tag is equal to `start` and `end`.
+function tagger:tag_is_equal(tag, start_pos, end_pos)
+    return tag[1] == start_pos and tag[2] == end_pos
 end
 
 
