@@ -140,7 +140,7 @@ function tagger:render_message(screenx, screeny)
     -- Pixel counts for font size 64
     local text_size = {upper_w=36, lower_w=28, height=45}
 
-    local msg_pixel_width = self:string_pixel_width(
+    local msg_pixel_width = self.string_pixel_width(
         self.message.content,
         text_size.upper_w,
         text_size.lower_w
@@ -154,12 +154,12 @@ function tagger:render_message(screenx, screeny)
 
     -- background
     self.ass:append(
-        self:colour(1, self.message_styles[self.message.style].bg)
+        self.colour(1, self.message_styles[self.message.style].bg)
     )
 
     -- border
     self.ass:append(
-        self:colour(3, self.message_styles[self.message.style].border)
+        self.colour(3, self.message_styles[self.message.style].border)
     )
     self.ass:append('{\\bord1}')
 
@@ -179,7 +179,7 @@ function tagger:render_message(screenx, screeny)
     self.ass:pos(screenx / 2, screeny / 2)
 
     -- text colour
-    self.ass:append(self:colour(1, 'FFFFFFFF'))
+    self.ass:append(self.colour(1, 'FFFFFFFF'))
 
     -- bold, no border, font size, center align
     self.ass:append('{\\b1}{\\bord0}{\\fs64}{\\an5}')
@@ -435,7 +435,7 @@ function tagger:render_current_tag()
     -- Box offset
     local offset = {x=5, y=5}
 
-    local msg_pixel_width = self:string_pixel_width(
+    local msg_pixel_width = self.string_pixel_width(
         self.chosen_tag,
         text_size.upper_w,
         text_size.lower_w
