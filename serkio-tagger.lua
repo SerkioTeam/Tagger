@@ -102,10 +102,11 @@ end
 
 ---------------------------------------------------------------------
 -- Create a message
-function tagger:show_message(message, time_bound, style)
+function tagger:show_message(message, time_bound, style, duration)
     self.message.content = message
     self.message.time_bound = time_bound or false
     self.message.style = style or 'notification'
+    self.message.duration = duration or self.message.duration
     self.message.active = true
 
     -- kill old message timer so it won't interfere with this message
