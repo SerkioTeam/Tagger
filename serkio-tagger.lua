@@ -608,6 +608,11 @@ end
 -- This must be pressed twice, once to begin the selection and again
 -- to end it.
 function tagger:mark_tag()
+    if self.chosen_tag == '' then
+        self:show_message('Before marking, select a tag with "t"', true, 'warning', 3)
+        return
+    end
+
     if self.current_tag.marking then
         self:add_tag(
             self.chosen_tag,
