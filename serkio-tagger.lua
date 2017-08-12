@@ -608,14 +608,12 @@ end
 -- to end it.
 function tagger:mark_tag()
     if self.current_tag.marking then
-        self:show_message('Marking the end of a tag', true)
         self:add_tag(
             self.chosen_tag,
             self.time_to_ms(self.current_tag.start_time),
             self.time_to_ms(self.current_tag.end_time)
         )
     else
-        self:show_message('Marking the beginning of a tag', true)
         self.current_tag.start_time = self.mp.get_property_osd('playback-time/full')
         self.current_tag.end_time = self.current_tag.start_time
     end
