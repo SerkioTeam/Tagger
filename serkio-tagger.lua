@@ -25,6 +25,9 @@ tagger.current_tag = {
     end_time=''
 }
 
+-- delete tag state
+tagger.delete_tag_state = {active=false}
+
 -- only one message should be displayed at a time,
 -- this is why there isn't a queue of any kind.
 tagger.message = {}
@@ -535,7 +538,54 @@ end
 -- Deletes a tag instance on the timeline, if the tag is no longer
 -- associated with any time on the timeline - remove it entirely.
 function tagger:delete_tag()
+    if not self.current_tag.active or self.current_tag.marking then
+        return
+    end
+
+    self.delete_tag_state.active = true
+    self.delete_tag_state.tag = self.chosen_tag
+    self.delete_tag_state.start_time = self.time_to_ms(self.current_tag.start_time)
+    self.delete_tag_state.end_time = self.time_to_ms(self.current_tag.end_time)
+
     self:show_message('Delete this tag? [y/n]', false, 'warning')
+
+    self.mp.set_property_native('pause', true)
+
+    -- force a redraw (the notification doesn't show without this)
+    self:draw(true)
+end
+
+
+---------------------------------------------------------------------
+-- Confirm a tag deletion.
+function tagger:delete_tag_confirm()
+    if not self.delete_tag_state.active then
+        return
+    end
+
+    self.mp.set_property_native('pause', false)
+    self:remove_tag(
+        self.delete_tag_state.tag,
+        self.delete_tag_state.start_time,
+        self.delete_tag_state.end_time
+    )
+    self:clear_message()
+
+    self.delete_tag_state.active = false
+end
+
+
+---------------------------------------------------------------------
+-- Cancel a tag deletion.
+function tagger:delete_tag_cancel()
+    if not self.delete_tag_state.active then
+        return
+    end
+
+    self.mp.set_property_native('pause', false)
+    self.delete_tag_state = {}
+    self:clear_message()
+    self.delete_tag_state.active = false
 end
 
 ---------------------------------------------------------------------
@@ -757,6 +807,8 @@ end
 -- `normal mode` keybindings
 tagger.normal_bindings = {
     {'d', 'delete-tag', function () return tagger:delete_tag() end},
+    {'y', 'delete-tag-confirm', function () return tagger:delete_tag_confirm() end},
+    {'n', 'delete-tag-cancel', function () return tagger:delete_tag_cancel() end},
     {'t', 'choose-tag', function () return tagger:choose_tag() end},
     {'m', 'mark-tag', function () return tagger:mark_tag() end},
     {'v', 'toggle-tag-hud', function () return tagger:toggle_tag_hud() end},
