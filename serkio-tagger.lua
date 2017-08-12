@@ -517,13 +517,18 @@ end
 
 ---------------------------------------------------------------------
 -- The main draw function. This calls all render functions.
-function tagger:draw(screenx, screeny)
+function tagger:draw(force)
+    local screenx, screeny, _ = self.mp.get_osd_size()
+
     tagger.ass = assdraw.ass_new()
 
     self:render_current_tag()
     self:render_message(screenx, screeny)
 
-    return self.ass.text
+    if forced or self.rendered_string ~= self.ass.text then
+        self.mp.set_osd_ass(screenx, screeny, self.ass.text)
+        self.rendered_string = self.ass.text
+    end
 end
 
 ---------------------------------------------------------------------
@@ -704,12 +709,7 @@ function tagger:toggle_existence()
 
         -- enable GUI (checks for GUI updates every 50ms)
         gui = self.mp.add_periodic_timer(0.05, function()
-            rendered = self:draw(screenx, screeny)
-
-            if self.rendered_string ~= rendered then
-                self.mp.set_osd_ass(screenx, screeny, rendered)
-                self.rendered_string = rendered
-            end
+            self:draw()
         end)
 
         -- frame by frame tick event to retrieve tag info
