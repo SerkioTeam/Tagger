@@ -13,25 +13,25 @@ describe('Serkio tagger', function()
             it('Should switch to normal mode without input',
             function()
                 input({'enter'})
-                assert.are_equal('normal', tagger.mode)
+                assert.are_equal('normal', tagger.state.mode)
             end)
 
             it('Should switch to normal mode with input',
             function()
                 input({'b', 'u', 'b', 'b', 'l', 'e', 'g', 'u', 'm', 'enter'})
-                assert.are_equal('normal', tagger.mode)
+                assert.are_equal('normal', tagger.state.mode)
             end)
 
             it('Should clear input buffer',
             function()
                 input({'i', 'c', 'e', '-', 'k', 'i', 'n', 'g', 'enter'})
-                assert.are_equal('', tagger.input_tag_string)
+                assert.are_equal('', tagger.state.input_tag_string)
             end)
 
             it('Should choose tag if input is provided',
             function()
                 input({'f', 'i', 'n', 'n', 'enter'})
-                assert.are_equal('finn', tagger.chosen_tag)
+                assert.are_equal('finn', tagger.state.chosen_tag)
             end)
 
             it('Should select a tag',
@@ -47,42 +47,42 @@ describe('Serkio tagger', function()
             it('Should switch to normal mode without input',
             function()
                 input({'esc'})
-                assert.are_equal('normal', tagger.mode)
+                assert.are_equal('normal', tagger.state.mode)
             end)
 
             it('Should switch to normal mode with input',
             function()
                 input({'b', 'e', 'e', 'm', 'o', 'esc'})
-                assert.are_equal('normal', tagger.mode)
+                assert.are_equal('normal', tagger.state.mode)
             end)
 
             it('Should discard tag input',
             function()
                 input({'m', 'a', 'r', 'c', 'e', 'l', 'i', 'n', 'e', 'esc'})
-                assert.are_equal('', tagger.input_tag_string)
+                assert.are_equal('', tagger.state.input_tag_string)
             end)
 
             it('Should not change the current chosen tag',
             function()
-                tagger.chosen_tag = 'peppermint-butler'
+                tagger.state.chosen_tag = 'peppermint-butler'
                 input({'t', 'h', 'e', '-', 'l', 'i', 'c', 'h', 'esc'})
-                assert.are_equal('peppermint-butler', tagger.chosen_tag)
+                assert.are_equal('peppermint-butler', tagger.state.chosen_tag)
             end)
         end)
 
         describe('Backspace keypress', function()
             it('Should delete the last character if input exists',
             function()
-                tagger.input_tag_string = 'tree-forta'
+                tagger.state.input_tag_string = 'tree-forta'
                 input({'bs'})
-                assert.are_equal('tree-fort', tagger.input_tag_string)
+                assert.are_equal('tree-fort', tagger.state.input_tag_string)
             end)
 
             it('Should do nothing if there is no input',
             function()
-                tagger.input_tag_string = ''
+                tagger.state.input_tag_string = ''
                 input({'bs'})
-                assert.are_equal('', tagger.input_tag_string)
+                assert.are_equal('', tagger.state.input_tag_string)
             end)
         end)
 
@@ -90,29 +90,29 @@ describe('Serkio tagger', function()
             it('Should convert uppercase letters to lowercase',
             function()
                 input({'F', 'o', 'R', 'e', 'S', 't'})
-                assert.are_equal('forest', tagger.input_tag_string)
+                assert.are_equal('forest', tagger.state.input_tag_string)
             end)
 
             it('Should not allow two or more dashes in a row',
             function()
-                tagger.input_tag_string = ''
+                tagger.state.input_tag_string = ''
                 input({'l', '-', '-', 'm', '-', '-', 'o'})
-                assert.are_equal('l-m-o', tagger.input_tag_string)
+                assert.are_equal('l-m-o', tagger.state.input_tag_string)
             end)
 
             it('Should not allow a tag to start with a dash',
             function()
-                tagger.input_tag_string = ''
+                tagger.state.input_tag_string = ''
                 input({'-'})
-                assert.are_equal('', tagger.input_tag_string)
+                assert.are_equal('', tagger.state.input_tag_string)
             end)
 
             it('Should not allow a tag to end with a dash',
             function()
-                tagger.input_tag_string = ''
-                tagger.chosen_tag = ''
+                tagger.state.input_tag_string = ''
+                tagger.state.chosen_tag = ''
                 input({'c', 'a', 'v', 'e', '-', 'enter'})
-                assert.are_equal('cave', tagger.chosen_tag)
+                assert.are_equal('cave', tagger.state.chosen_tag)
             end)
         end)
     end)

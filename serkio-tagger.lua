@@ -3,30 +3,33 @@ local mpv_loaded, mp = pcall(require, 'mp')
 local ass_loaded, assdraw = pcall(require, 'mp.assdraw')
 
 tagger.mp = mp
-tagger.active = false
-tagger.tag_hud_active = false
-tagger.chosen_tag = ''
-tagger.input_tag_string = ''
-tagger.rendered_string = ''
 
--- modes are: normal and input
-tagger.mode = 'normal'
+tagger.state = {
+    active=false,
+    tag_hud_active=false,
+    chosen_tag='',
+    input_tag_string='',
+    rendered_string='',
+
+    -- modes are: normal and input
+    mode='normal',
+
+    -- delete tag state
+    delete_tag_state={active=false},
+
+    -- one of two current tag states:
+    -- ∙ Actively marking a new tag
+    -- ∙ Hovering over an existing tag
+    current_tag={
+        active=false,
+        marking=false,
+        start_time='',
+        end_time=''
+    }
+}
 
 -- meta info and tag data for this media file
 tagger.data = {}
-
--- one of two current tag states:
--- ∙ Actively marking a new tag
--- ∙ Hovering over an existing tag
-tagger.current_tag = {
-    active=false,
-    marking=false,
-    start_time='',
-    end_time=''
-}
-
--- delete tag state
-tagger.delete_tag_state = {active=false}
 
 -- only one message should be displayed at a time,
 -- this is why there isn't a queue of any kind.
@@ -250,6 +253,8 @@ function tagger:load_tag_data(path)
             }
         }
     }
+
+    self.data.tags = {}
 end
 
 
@@ -448,7 +453,7 @@ end
 ---------------------------------------------------------------------
 -- Render the current tag
 function tagger:render_current_tag()
-    if not self.current_tag.active then
+    if not self.state.current_tag.active then
         return
     end
 
@@ -459,7 +464,7 @@ function tagger:render_current_tag()
     local offset = {x=5, y=5}
 
     local msg_pixel_width = self.string_pixel_width(
-        self.chosen_tag,
+        self.state.chosen_tag,
         text_size.upper_w,
         text_size.lower_w
     )
@@ -499,7 +504,7 @@ function tagger:render_current_tag()
 
     -- bold, border, font size, center align
     self.ass:append('{\\b1}{\\bord0.5}{\\fs35}{\\an2}')
-    self.ass:append(self.chosen_tag)
+    self.ass:append(self.state.chosen_tag)
 
     -- time
     self.ass:new_event()
@@ -514,8 +519,8 @@ function tagger:render_current_tag()
     -- thin border, font size, center align
     self.ass:append('{\\bord0.1}{\\fs25}{\\an8}')
 
-    self.ass:append(self.current_tag.start_time)
-    self.ass:append(' — ' .. self.current_tag.end_time)
+    self.ass:append(self.state.current_tag.start_time)
+    self.ass:append(' — ' .. self.state.current_tag.end_time)
 end
 
 ---------------------------------------------------------------------
@@ -528,9 +533,9 @@ function tagger:draw(force)
     self:render_current_tag()
     self:render_message(screenx, screeny)
 
-    if forced or self.rendered_string ~= self.ass.text then
+    if forced or self.state.rendered_string ~= self.ass.text then
         self.mp.set_osd_ass(screenx, screeny, self.ass.text)
-        self.rendered_string = self.ass.text
+        self.state.rendered_string = self.ass.text
     end
 end
 
@@ -538,14 +543,14 @@ end
 -- Deletes a tag instance on the timeline, if the tag is no longer
 -- associated with any time on the timeline - remove it entirely.
 function tagger:delete_tag()
-    if not self.current_tag.active or self.current_tag.marking then
+    if not self.state.current_tag.active or self.state.current_tag.marking then
         return
     end
 
-    self.delete_tag_state.active = true
-    self.delete_tag_state.tag = self.chosen_tag
-    self.delete_tag_state.start_time = self.time_to_ms(self.current_tag.start_time)
-    self.delete_tag_state.end_time = self.time_to_ms(self.current_tag.end_time)
+    self.state.delete_tag_state.active = true
+    self.state.delete_tag_state.tag = self.state.chosen_tag
+    self.state.delete_tag_state.start_time = self.time_to_ms(self.state.current_tag.start_time)
+    self.state.delete_tag_state.end_time = self.time_to_ms(self.state.current_tag.end_time)
 
     self:show_message('Delete this tag? [y/n]', false, 'warning')
 
@@ -559,39 +564,39 @@ end
 ---------------------------------------------------------------------
 -- Confirm a tag deletion.
 function tagger:delete_tag_confirm()
-    if not self.delete_tag_state.active then
+    if not self.state.delete_tag_state.active then
         return
     end
 
     self.mp.set_property_native('pause', false)
     self:remove_tag(
-        self.delete_tag_state.tag,
-        self.delete_tag_state.start_time,
-        self.delete_tag_state.end_time
+        self.state.delete_tag_state.tag,
+        self.state.delete_tag_state.start_time,
+        self.state.delete_tag_state.end_time
     )
     self:clear_message()
 
-    self.delete_tag_state.active = false
+    self.state.delete_tag_state.active = false
 end
 
 
 ---------------------------------------------------------------------
 -- Cancel a tag deletion.
 function tagger:delete_tag_cancel()
-    if not self.delete_tag_state.active then
+    if not self.state.delete_tag_state.active then
         return
     end
 
     self.mp.set_property_native('pause', false)
-    self.delete_tag_state = {}
+    self.state.delete_tag_state = {}
     self:clear_message()
-    self.delete_tag_state.active = false
+    self.state.delete_tag_state.active = false
 end
 
 ---------------------------------------------------------------------
 -- Switches the tagger into `input` mode in order to input a tag.
 function tagger:choose_tag()
-    self.mode = 'input'
+    self.state.mode = 'input'
     self:show_message('Enter a tag')
 
     self:remove_keybindings(self.normal_bindings)
@@ -604,7 +609,7 @@ end
 -- to create mark points and for tag info to be displayed in the top
 -- left hand corner.
 function tagger:select_tag(tag)
-    self.chosen_tag = tag
+    self.state.chosen_tag = tag
     self:show_message(string.format('%q selected', tag), true)
 end
 
@@ -619,42 +624,42 @@ function tagger:tag_input_handler(char)
     if char == 'enter'  or char == 'esc' then
         if char == 'enter' then
             -- a dash isn't allowed as the end character
-            if self.input_tag_string:sub(-1) == '-' then
-                self.input_tag_string = self.input_tag_string:sub(1, -2)
+            if self.state.input_tag_string:sub(-1) == '-' then
+                self.state.input_tag_string = self.state.input_tag_string:sub(1, -2)
             end
 
-            if self.input_tag_string:len() > 0 then
-                self:select_tag(self.input_tag_string)
+            if self.state.input_tag_string:len() > 0 then
+                self:select_tag(self.state.input_tag_string)
             end
         end
 
         -- reset input buffer
-        self.input_tag_string = ''
+        self.state.input_tag_string = ''
 
         -- switch back to normal mode
-        self.mode = 'normal'
+        self.state.mode = 'normal'
         self:remove_keybindings(self.enter_bindings)
         self:add_keybindings(self.normal_bindings)
     -- backspace
     elseif char == 'bs' then
-        self.input_tag_string = self.input_tag_string:sub(1, -2)
-        self:show_message(self.input_tag_string)
+        self.state.input_tag_string = self.state.input_tag_string:sub(1, -2)
+        self:show_message(self.state.input_tag_string)
     -- a-z, A-Z and dash (`-`)
     else
         if char == '-' then
             -- a dash isn't allowed as the first character
-            if self.input_tag_string:len() == 0 then
+            if self.state.input_tag_string:len() == 0 then
                 do return end
             end
 
             -- no more than one dash can exist between words
-            if self.input_tag_string:sub(-1) == '-' then
+            if self.state.input_tag_string:sub(-1) == '-' then
                 do return end
             end
         end
 
-        self.input_tag_string = self.input_tag_string .. char:lower()
-        self:show_message(self.input_tag_string)
+        self.state.input_tag_string = self.state.input_tag_string .. char:lower()
+        self:show_message(self.state.input_tag_string)
     end
 end
 
@@ -663,24 +668,24 @@ end
 -- This must be pressed twice, once to begin the selection and again
 -- to end it.
 function tagger:mark_tag()
-    if self.chosen_tag == '' then
+    if self.state.chosen_tag == '' then
         self:show_message('Before marking, select a tag with "t"', true, 'warning', 3)
         return
     end
 
-    if self.current_tag.marking then
+    if self.state.current_tag.marking then
         self:add_tag(
-            self.chosen_tag,
-            self.time_to_ms(self.current_tag.start_time),
-            self.time_to_ms(self.current_tag.end_time)
+            self.state.chosen_tag,
+            self.time_to_ms(self.state.current_tag.start_time),
+            self.time_to_ms(self.state.current_tag.end_time)
         )
     else
-        self.current_tag.start_time = self.mp.get_property_osd('playback-time/full')
-        self.current_tag.end_time = self.current_tag.start_time
+        self.state.current_tag.start_time = self.mp.get_property_osd('playback-time/full')
+        self.state.current_tag.end_time = self.state.current_tag.start_time
     end
 
-    self.current_tag.active = not self.current_tag.active
-    self.current_tag.marking = not self.current_tag.marking
+    self.state.current_tag.active = not self.state.current_tag.active
+    self.state.current_tag.marking = not self.state.current_tag.marking
 end
 
 ---------------------------------------------------------------------
@@ -688,9 +693,9 @@ end
 -- associated with the current video. Highlighting `active` ones as
 -- the video is played.
 function tagger:toggle_tag_hud()
-    self.tag_hud_active = not self.tag_hud_active
+    self.state.tag_hud_active = not self.state.tag_hud_active
 
-    if self.tag_hud_active then
+    if self.state.tag_hud_active then
         self:show_message('Tag heads up display activated')
     else
         self:show_message('Tag heads up display disabled')
@@ -751,11 +756,12 @@ function tagger:toggle_existence()
     local screenx, screeny, _ = self.mp.get_osd_size()
     local last_tick = ''
 
-    self.active = not self.active
+    self.state.active = not self.state.active
 
-    if self.active then
+    if self.state.active then
         self:show_message('Serkio activated', true)
         self:add_keybindings(self.normal_bindings)
+        self:load_tag_data()
 
         -- enable GUI (checks for GUI updates every 50ms)
         gui = self.mp.add_periodic_timer(0.05, function()
@@ -773,19 +779,19 @@ function tagger:toggle_existence()
             end
 
             -- marking active
-            if self.current_tag.active and self.current_tag.marking then
-                self.current_tag.end_time = pos
+            if self.state.current_tag.active and self.state.current_tag.marking then
+                self.state.current_tag.end_time = pos
             else
-                local tag_times = self:get_tag_times(self.chosen_tag, self.time_to_ms(pos))
+                local tag_times = self:get_tag_times(self.state.chosen_tag, self.time_to_ms(pos))
 
                 -- we are hovering over an existing tag
                 if tag_times ~= nil then
-                    self.current_tag.active = true
-                    self.current_tag.start_time = self.ms_to_time(tag_times[1])
-                    self.current_tag.end_time = self.ms_to_time(tag_times[2])
+                    self.state.current_tag.active = true
+                    self.state.current_tag.start_time = self.ms_to_time(tag_times[1])
+                    self.state.current_tag.end_time = self.ms_to_time(tag_times[2])
                 -- we have just hovered past an existing tag
-                elseif self.current_tag.active then
-                    self.current_tag.active = false
+                elseif self.state.current_tag.active then
+                    self.state.current_tag.active = false
                 end
             end
 
@@ -857,7 +863,5 @@ tagger.mp.add_forced_key_binding(
 
 -- call `clear_message` on startup to initialise a default message
 tagger:clear_message()
-
-tagger:load_tag_data()
 
 return tagger
