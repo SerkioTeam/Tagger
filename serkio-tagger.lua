@@ -86,6 +86,16 @@ end
 
 
 ---------------------------------------------------------------------
+-- Return a suitable filename to store tag data
+function tagger:get_filename()
+    return string.match(
+        self.mp.get_property('filename'),
+        '(.*)%.[^.]+$'
+    ) .. '.json'
+end
+
+
+---------------------------------------------------------------------
 -- Reset the notification message
 function tagger:clear_message()
     self.message = {

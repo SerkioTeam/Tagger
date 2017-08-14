@@ -125,6 +125,17 @@ describe('Serkio tagger', function()
                 tagger.colour(1, 'AABBCC00')
             )
         end)
+
+        it('`get_filename` should return a suitable filename to store tag data', function()
+            tagger.mp.get_property = function(property)
+                return '/home/matt/Rick.and.Morty.S03E02.720p.HDTV.x264-BATV.mkv'
+            end
+
+            assert.are_equal(
+                '/home/matt/Rick.and.Morty.S03E02.720p.HDTV.x264-BATV.json',
+                tagger:get_filename()
+            )
+        end)
     end)
     describe('time conversion functionality', function()
         local tagger = require('serkio-tagger')
