@@ -1,8 +1,10 @@
 local tagger = {}
 local mpv_loaded, mp = pcall(require, 'mp')
 local ass_loaded, assdraw = pcall(require, 'mp.assdraw')
+local _, utils = pcall(require, 'mp.utils')
 
 tagger.mp = mp
+tagger.utils = utils
 
 tagger.state = {
     active=false,
@@ -89,7 +91,7 @@ end
 -- Return a suitable filename to store tag data
 function tagger:get_filename()
     return string.match(
-        self.mp.get_property('filename'),
+        self.mp.get_property('path'),
         '(.*)%.[^.]+$'
     ) .. '.json'
 end
@@ -234,41 +236,6 @@ end
 
 
 ---------------------------------------------------------------------
--- Loads the initial tag data into our plugin.
-function tagger:load_tag_data(path)
-    -- Stub: this will load the following data from a JSON file.
-    self.data = {
-        name='Adventure Time - 01.01 - Slumber Party Panic',
-        show='Adventure Time',
-        episode='S01E01',
-        movie='',
-        serkio_id='ATS01E01',
-        filename='01.01 - Slumber Party Panic.mp4',
-        checksum='2d08132872b9451798545b7abd8bea01',
-        duration='10:51',
-        tags={
-            ['jake']={
-                {1, 5},
-                {12, 13},
-                {15, 16}
-            },
-            ['finn']={
-                {1, 5},
-                {22, 26},
-                {38, 50}
-            },
-            ['princess-bubblegum']={
-                {100, 122},
-                {140, 145}
-            }
-        }
-    }
-
-    self.data.tags = {}
-end
-
-
----------------------------------------------------------------------
 -- Adds a tag instance. This also merges tags if they overlap.
 function tagger:add_tag(tag, t1, t2)
     local tags = self.data.tags[tag]
@@ -300,6 +267,9 @@ function tagger:add_tag(tag, t1, t2)
     self.data.tags[tag] = tags
 
     self:order_tags(tag)
+
+    -- save to file
+    if mpv_loaded then self:save_data() end
 end
 
 
@@ -319,6 +289,9 @@ function tagger:remove_tag(tag, t1, t2)
     end
 
     self.data.tags[tag] = tags
+
+    -- save to file
+    if mpv_loaded then self:save_data() end
 end
 
 
@@ -729,15 +702,32 @@ function tagger:change_tag_out()
 end
 
 ---------------------------------------------------------------------
--- Load all tags from a JSON file.
-function tagger:load_tags()
-    self:show_message('Load tags from file')
+-- Load all tags and meta data from a JSON file.
+function tagger:load_data()
+    local json_file = io.open(self:get_filename(), 'r')
+
+    if json_file == nil then
+        self.data = {
+            name=self.mp.get_property('media-title'),
+            duration=self.ms_to_time(self.mp.get_property('duration') * 1000),
+            filename=self.mp.get_property('filename'),
+            tags={}
+        }
+    else
+        self.data = self.utils.parse_json(json_file:read('*all'))
+        json_file:close()
+    end
 end
 
 ---------------------------------------------------------------------
--- Save all tags to a JSON file.
-function tagger:save_tags()
-    self:show_message('Save tags from file')
+-- Save all tags and meta data to a JSON file.
+function tagger:save_data()
+    local json_file, _ = io.open(self:get_filename(), 'w')
+
+    if json_file == nil then return end
+
+    json_file:write(string.format('%s', self.utils.format_json(self.data)))
+    json_file:close()
 end
 
 ---------------------------------------------------------------------
@@ -771,7 +761,7 @@ function tagger:toggle_existence()
     if self.state.active then
         self:show_message('Serkio activated', true)
         self:add_keybindings(self.normal_bindings)
-        self:load_tag_data()
+        self:load_data()
 
         -- enable GUI (checks for GUI updates every 50ms)
         gui = self.mp.add_periodic_timer(0.05, function()
@@ -784,7 +774,13 @@ function tagger:toggle_existence()
             current_tick = self.mp.get_property_osd('estimated-frame-number')
 
             -- only continue if we've changed frames
-            if last_tick == current_tick then
+            if last_tick == current_tick or pos == '' then
+                return
+            end
+
+            -- this event can be fired after the video has finished,
+            -- in which case we don't have access to MPV properties
+            if pos == '' then
                 return
             end
 
@@ -830,8 +826,6 @@ tagger.normal_bindings = {
     {'v', 'toggle-tag-hud', function () return tagger:toggle_tag_hud() end},
     {'i', 'change-tag-in', function () return tagger:change_tag_in() end},
     {'o', 'change-tag-out', function () return tagger:change_tag_out() end},
-    {'l', 'load-tags', function () return tagger:load_tags() end},
-    {'s', 'save-tags', function () return tagger:save_tags() end},
 }
 
 -- `enter mode` keybindings
