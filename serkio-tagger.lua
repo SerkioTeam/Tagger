@@ -19,6 +19,15 @@ tagger.state = {
     -- delete tag state
     delete_tag_state={active=false},
 
+    -- qualifier state
+    qualifier={active=false, ok_percent=10, percent=0, x=0, y=0},
+
+    -- crosshair state
+    crosshair_active=false,
+
+    -- mouse position
+    mouse={0, 0},
+
     -- tags to show in the heads up display
     hud_tags={},
 
@@ -210,7 +219,7 @@ function tagger:render_hud(screenx, screeny)
     if not self.state.tag_hud_active then return end
 
     local tags = self.state.hud_tags
-    local lines, line, c_len, space, width = {}, '', 0, 5, 60
+    local lines, line, c_len, space, width = {}, '', 0, 5, 52
     local screenx_sixth = screenx / 6
 
     for i=1, #tags do
@@ -253,7 +262,7 @@ function tagger:render_hud(screenx, screeny)
     self.ass:append(self.colour(3, '00000066'))
     self.ass:append(self.colour(1, 'FE4365FF'))
     self.ass:append('{\\fs64\\b1\\bord1\\an8}')
-    self.ass:append('Tags in this video')
+    self.ass:append('Things in this video')
 
     -- tags
     self.ass:new_event()
@@ -565,6 +574,46 @@ function tagger:render_current_tag()
 end
 
 ---------------------------------------------------------------------
+-- Render a crosshair
+function tagger:render_crosshair(x, y)
+    if not self.state.crosshair_active then return end
+
+    local mouse = self.state.mouse
+
+    self.ass:new_event()
+    self.ass:append('{\\bord0}{\\shad0}{\\c&HBBBBBB&}{\\alpha&H00&}')
+    self.ass:pos(0, 0)
+    self.ass:draw_start()
+    self.ass:rect_cw(mouse[1] - 0.5, 0, mouse[1] + 0.5, y)
+    self.ass:rect_cw(0, mouse[2] - 0.5, x, mouse[2] + 0.5)
+    self.ass:draw_stop()
+end
+
+---------------------------------------------------------------------
+-- Render qualifer box
+function tagger:render_qualifier(x, y)
+    if not self.state.qualifier.active then return end
+
+    local qualifier = self.state.qualifier
+    local colour = qualifier.percent >= qualifier.ok_percent and '00FF00FF' or 'FF0000FF'
+
+    -- qualifier box
+    self.ass:new_event()
+    self.ass:draw_start()
+    self.ass:pos(0, 0)
+    self.ass:append(self.colour(1, '00000011') .. self.colour(3, colour) .. '{\\bord2}')
+    self.ass:rect_cw(qualifier.x, qualifier.y, self.state.mouse[1], self.state.mouse[2])
+    self.ass:draw_stop()
+
+    -- percentage text above the qualifier box
+    self.ass:new_event()
+    self.ass:pos(qualifier.x, qualifier.y)
+    self.ass:append(self.colour(1, colour))
+    self.ass:append('{\\b1}{\\fs32}{\\an1}')
+    self.ass:append(string.format('%d%%', qualifier.percent))
+end
+
+---------------------------------------------------------------------
 -- The main draw function. This calls all render functions
 function tagger:draw(force)
     local screenx, screeny, _ = self.mp.get_osd_size()
@@ -574,6 +623,8 @@ function tagger:draw(force)
     self:render_current_tag()
     self:render_message(screenx, screeny)
     self:render_hud(screenx, screeny)
+    self:render_crosshair(screenx, screeny)
+    self:render_qualifier(screenx, screeny)
 
     if forced or self.state.rendered_string ~= self.ass.text then
         self.mp.set_osd_ass(screenx, screeny, self.ass.text)
@@ -735,6 +786,25 @@ function tagger:toggle_tag_hud()
 end
 
 ---------------------------------------------------------------------
+-- Toggles the `qualifier` feature, which determines whether an  item
+-- is large and clear enough to deserve a tag.
+function tagger:toggle_qualifier()
+    if not self.state.crosshair_active then
+        self.state.crosshair_active = true
+        return
+    end
+
+    self.state.qualifier.active = not self.state.qualifier.active
+
+    if self.state.qualifier.active then
+        local m = self.state.mouse
+        self.state.qualifier.x, self.state.qualifier.y = m[1], m[2]
+    else
+        self.state.crosshair_active = false
+    end
+end
+
+---------------------------------------------------------------------
 -- Changes a tag's start time. It first looks to see if we're
 -- `on top` of a tag, if we're not it will look for a tag `in front`
 -- of our current position.
@@ -844,6 +914,22 @@ function tagger:update_current_tag(pos)
 end
 
 ---------------------------------------------------------------------
+-- Update the qualifier box
+function tagger:update_qualifier(x, y)
+    if not self.state.qualifier.active then return end
+
+    local qualifier = self.state.qualifier
+
+    local h = {self.state.mouse[1], qualifier.x}
+    table.sort(h)
+
+    local v = {self.state.mouse[2], qualifier.y}
+    table.sort(v)
+
+    qualifier.percent = (h[2] - h[1]) * (v[2] - v[1]) / (x * y) * 100
+end
+
+---------------------------------------------------------------------
 -- Toggles the tagger plugin and controls normal mode keybindings
 function tagger:toggle_existence()
     local screenx, screeny, _ = self.mp.get_osd_size()
@@ -856,8 +942,17 @@ function tagger:toggle_existence()
         self:add_keybindings(self.normal_bindings)
         self:load_data()
 
-        -- enable GUI (checks for GUI updates every 50ms)
-        gui = self.mp.add_periodic_timer(0.05, function() self:draw() end)
+        -- enable GUI (checks for GUI updates every 30ms)
+        gui = self.mp.add_periodic_timer(0.03, function()
+            -- this isn't in `tick` because the user could be
+            -- trying to `qualify` a paused video
+            self:update_qualifier(screenx, screeny)
+
+            -- update mouse position
+            self.state.mouse[1], self.state.mouse[2] = self.mp.get_mouse_pos()
+
+            self:draw()
+        end)
 
         -- frame by frame tick event to retrieve tag info
         self.mp.register_event('tick', function()
@@ -899,6 +994,7 @@ tagger.normal_bindings = {
     {'v', 'toggle-tag-hud', function () return tagger:toggle_tag_hud() end},
     {'i', 'change-tag-in', function () return tagger:change_tag_in() end},
     {'o', 'change-tag-out', function () return tagger:change_tag_out() end},
+    {'MOUSE_BTN0', 'qualify', function () return tagger:toggle_qualifier() end},
 }
 
 -- `enter mode` keybindings
