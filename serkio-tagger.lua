@@ -37,7 +37,7 @@ tagger.state = {
 tagger.data = {}
 
 -- only one message should be displayed at a time,
--- this is why there isn't a queue of any kind.
+-- this is why there isn't a queue of any kind
 tagger.message = {}
 tagger.message_styles = {
     notification={
@@ -131,9 +131,7 @@ function tagger:show_message(message, time_bound, style, duration)
     self.message.active = true
 
     -- kill old message timer so it won't interfere with this message
-    if message_timer ~= nil then
-        message_timer:kill()
-    end
+    if message_timer ~= nil then message_timer:kill() end
 
     -- start a periodic timer to clear the message when necessary
     if self.message.time_bound then
@@ -154,9 +152,7 @@ end
 ---------------------------------------------------------------------
 -- Render a message
 function tagger:render_message(screenx, screeny)
-    if not self.message.active then
-        return
-    end
+    if not self.message.active then return end
 
     -- Pixel counts for font size 64
     local text_size = {upper_w=36, lower_w=28, height=45}
@@ -275,19 +271,14 @@ function tagger.string_pixel_width(text, upper_width, lower_width)
 
     for i=1, #text do
         local s = text:sub(i, i)
-
-        if s == string.upper(s) then
-            count = count + upper_width
-        else
-            count = count + lower_width
-        end
+        count = count + (s == string.upper(s) and upper_width or lower_width)
     end
 
     return count
 end
 
 ---------------------------------------------------------------------
--- Utility function for splitting strings on a `sep` seperator.
+-- Utility function for splitting strings on a `sep` separator
 function string:split(sep)
     local sep, fields = sep or ':', {}
     local pattern = string.format('([^%s]+)', sep)
@@ -308,13 +299,11 @@ end
 
 
 ---------------------------------------------------------------------
--- Adds a tag instance. This also merges tags if they overlap.
+-- Adds a tag instance. This also merges tags if they overlap
 function tagger:add_tag(tag, t1, t2)
     local tags = self.data.tags[tag]
 
-    if tags == nil then
-        tags = {}
-    end
+    if tags == nil then tags = {} end
 
     -- start should always come before the end
     local points = {t1, t2}
@@ -325,9 +314,7 @@ function tagger:add_tag(tag, t1, t2)
 
     for k, v in pairs(tags) do
         if v[1] >= points[1] and v[1] <= points[2] then
-            if v[2] > high then
-                high = v[2]
-            end
+            if v[2] > high then high = v[2] end
 
             table.remove(tags, k)
         end
@@ -346,19 +333,15 @@ end
 
 
 ---------------------------------------------------------------------
--- Deletes a tag instance. If necessary the tag itself is deleted.
+-- Deletes a tag instance. If necessary the tag itself is deleted
 function tagger:remove_tag(tag, t1, t2)
     local tags = self.data.tags[tag]
 
     for k, v in pairs(tags) do
-        if self.tag_is_equal(v, t1, t2) then
-            table.remove(tags, k)
-        end
+        if self.tag_is_equal(v, t1, t2) then table.remove(tags, k) end
     end
 
-    if #tags == 0 then
-        tags = nil
-    end
+    if #tags == 0 then tags = nil end
 
     self.data.tags[tag] = tags
 
@@ -368,7 +351,7 @@ end
 
 
 ---------------------------------------------------------------------
--- Change a tag instances end position to `new_t2`.
+-- Change a tag instances end position to `new_t2`
 function tagger:push_tag(tag, t1, t2, new_t2)
     local tags = self.data.tags[tag]
 
@@ -381,7 +364,7 @@ end
 
 
 ---------------------------------------------------------------------
--- Change a tag instances start position to `new_t1`.
+-- Change a tag instances start position to `new_t1`
 function tagger:pull_tag(tag, t1, t2, new_t1)
     local tags = self.data.tags[tag]
 
@@ -450,9 +433,7 @@ end
 -- Searches for a tag that exists within `position`, then returns
 -- the matching tag instances start and end time.
 function tagger:get_tag_times(tag, position)
-    if self.data.tags[tag] == nil then
-        return
-    end
+    if self.data.tags[tag] == nil then return end
 
     for i=1, #self.data.tags[tag] do
         if self.tag_exists_at(self.data.tags[tag][i], position) then
@@ -463,21 +444,21 @@ end
 
 
 ---------------------------------------------------------------------
--- Returns `true` if tag is equal to `t1` and `t2`.
+-- Returns `true` if tag is equal to `t1` and `t2`
 function tagger.tag_is_equal(tag, t1, t2)
     return tag[1] == t1 and tag[2] == t2
 end
 
 
 ---------------------------------------------------------------------
--- Returns `true` if tag appears at `t`.
+-- Returns `true` if tag appears at `t`
 function tagger.tag_exists_at(tag, t)
     return t >= tag[1] and t <= tag[2]
 end
 
 
 ---------------------------------------------------------------------
--- Converts `HH:MM:SS' time strings to milliseconds.
+-- Converts `HH:MM:SS' time strings to milliseconds
 function tagger.time_to_ms(time_string)
     local t = time_string:split()
     local sec_ms = t[3]:split('.')
@@ -492,7 +473,7 @@ end
 
 
 ---------------------------------------------------------------------
--- Converts milliseconds to a time string of `HH:MM:SS.mmm'.
+-- Converts milliseconds to a time string of `HH:MM:SS.mmm'
 function tagger.ms_to_time(ms)
     local remaining_ms = math.fmod(ms, 1000)
     local seconds = (ms - remaining_ms) / 1000
@@ -506,7 +487,7 @@ end
 
 
 ---------------------------------------------------------------------
--- Creates a tag if it doesn't exist.
+-- Creates a tag if it doesn't exist
 function tagger.create_tag(name)
     -- Stub: return `true` if tag was created.
 end
@@ -515,9 +496,7 @@ end
 ---------------------------------------------------------------------
 -- Render the current tag
 function tagger:render_current_tag()
-    if not self.state.current_tag.active then
-        return
-    end
+    if not self.state.current_tag.active then return end
 
     -- Pixel counts for font size 35
     local text_size = {upper_w=20, lower_w=15, height=32}
@@ -586,7 +565,7 @@ function tagger:render_current_tag()
 end
 
 ---------------------------------------------------------------------
--- The main draw function. This calls all render functions.
+-- The main draw function. This calls all render functions
 function tagger:draw(force)
     local screenx, screeny, _ = self.mp.get_osd_size()
 
@@ -625,11 +604,9 @@ end
 
 
 ---------------------------------------------------------------------
--- Confirm a tag deletion.
+-- Confirm a tag deletion
 function tagger:delete_tag_confirm()
-    if not self.state.delete_tag_state.active then
-        return
-    end
+    if not self.state.delete_tag_state.active then return end
 
     self.mp.set_property_native('pause', false)
     self:remove_tag(
@@ -644,11 +621,9 @@ end
 
 
 ---------------------------------------------------------------------
--- Cancel a tag deletion.
+-- Cancel a tag deletion
 function tagger:delete_tag_cancel()
-    if not self.state.delete_tag_state.active then
-        return
-    end
+    if not self.state.delete_tag_state.active then return end
 
     self.mp.set_property_native('pause', false)
     self.state.delete_tag_state = {}
@@ -657,7 +632,7 @@ function tagger:delete_tag_cancel()
 end
 
 ---------------------------------------------------------------------
--- Switches the tagger into `input` mode in order to input a tag.
+-- Switches the tagger into `input` mode in order to input a tag
 function tagger:choose_tag()
     self.state.mode = 'input'
     self:show_message('Enter a tag')
@@ -776,7 +751,7 @@ function tagger:change_tag_out()
 end
 
 ---------------------------------------------------------------------
--- Load all tags and meta data from a JSON file.
+-- Load all tags and meta data from a JSON file
 function tagger:load_data()
     local json_file = io.open(self:get_filename(), 'r')
 
@@ -794,7 +769,7 @@ function tagger:load_data()
 end
 
 ---------------------------------------------------------------------
--- Save all tags and meta data to a JSON file.
+-- Save all tags and meta data to a JSON file
 function tagger:save_data()
     local json_file, _ = io.open(self:get_filename(), 'w')
 
@@ -825,7 +800,51 @@ function tagger:remove_keybindings(bindings)
 end
 
 ---------------------------------------------------------------------
--- Toggles the tagger plugin and controls normal mode keybindings.
+-- Update the tag heads up display
+function tagger:update_tag_hud(pos)
+    if self.state.tag_hud_active then
+        local tags = self:get_tags()
+        self.state.hud_tags = {}
+
+        for i=1, #tags do
+            table.insert(
+                self.state.hud_tags,
+                {
+                    -- tag name
+                    tags[i],
+                    -- tag activity: true or false
+                    table.contains(self:get_tags(self.time_to_ms(pos)), tags[i])
+                }
+            )
+        end
+    end
+end
+
+---------------------------------------------------------------------
+-- Update the current tag display
+function tagger:update_current_tag(pos)
+    -- marking is active
+    if self.state.current_tag.active and self.state.current_tag.marking then
+        self.state.current_tag.end_time = pos
+    else
+        local tag_times = self:get_tag_times(
+            self.state.chosen_tag, self.time_to_ms(pos)
+        )
+
+        -- we're hovering over an existing tag
+        if tag_times ~= nil then
+            self.state.current_tag.active = true
+            self.state.current_tag.start_time = self.ms_to_time(tag_times[1])
+            self.state.current_tag.end_time = self.ms_to_time(tag_times[2])
+        -- we have just hovered past an existing tag
+        elseif self.state.current_tag.active then
+            self.state.current_tag.active = false
+        end
+    end
+end
+
+---------------------------------------------------------------------
+-- Toggles the tagger plugin and controls normal mode keybindings
 function tagger:toggle_existence()
     local screenx, screeny, _ = self.mp.get_osd_size()
     local last_tick = ''
@@ -838,9 +857,7 @@ function tagger:toggle_existence()
         self:load_data()
 
         -- enable GUI (checks for GUI updates every 50ms)
-        gui = self.mp.add_periodic_timer(0.05, function()
-            self:draw()
-        end)
+        gui = self.mp.add_periodic_timer(0.05, function() self:draw() end)
 
         -- frame by frame tick event to retrieve tag info
         self.mp.register_event('tick', function()
@@ -848,53 +865,14 @@ function tagger:toggle_existence()
             current_tick = self.mp.get_property_osd('estimated-frame-number')
 
             -- only continue if we've changed frames
-            if last_tick == current_tick or pos == '' then
-                return
-            end
+            if last_tick == current_tick or pos == '' then return end
 
             -- this event can be fired after the video has finished,
             -- in which case we don't have access to MPV properties
-            if pos == '' then
-                return
-            end
+            if pos == '' then return end
 
-            -- tag heads up display
-            if self.state.tag_hud_active then
-                local tags = self:get_tags()
-                self.state.hud_tags = {}
-
-                for i=1, #tags do
-                    table.insert(
-                        self.state.hud_tags,
-                        {
-                            -- tag name
-                            tags[i],
-                            -- tag activity: true or false
-                            table.contains(
-                                self:get_tags(self.time_to_ms(pos)),
-                                tags[i]
-                            )
-                        }
-                    )
-                end
-            end
-
-            -- marking active
-            if self.state.current_tag.active and self.state.current_tag.marking then
-                self.state.current_tag.end_time = pos
-            else
-                local tag_times = self:get_tag_times(self.state.chosen_tag, self.time_to_ms(pos))
-
-                -- we are hovering over an existing tag
-                if tag_times ~= nil then
-                    self.state.current_tag.active = true
-                    self.state.current_tag.start_time = self.ms_to_time(tag_times[1])
-                    self.state.current_tag.end_time = self.ms_to_time(tag_times[2])
-                -- we have just hovered past an existing tag
-                elseif self.state.current_tag.active then
-                    self.state.current_tag.active = false
-                end
-            end
+            self:update_tag_hud(pos)
+            self:update_current_tag(pos)
 
             last_tick = current_tick
         end)
