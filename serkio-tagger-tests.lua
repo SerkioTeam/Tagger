@@ -248,13 +248,22 @@ describe('Serkio tagger', function()
         end)
 
         it('`get_tags` should return a table of all tags', function()
+            tagger.state.chosen_tag = ''
             tagger.data.tags = {jake={}, finn={}, treehouse={}}
             assert.are_same({'finn', 'jake', 'treehouse'}, tagger:get_tags())
         end)
 
         it('`get_tags` should return a table of all tags which exist at a time position', function()
+            tagger.state.chosen_tag = ''
             tagger.data.tags = {jake={{6, 9}, {1, 3}}, finn={{3, 4}}, treehouse={{2, 3}}}
             assert.are_same({'jake', 'treehouse'}, tagger:get_tags(2))
+        end)
+
+        it('`get_tags` should always include the tag currently being marked', function()
+            tagger.state.chosen_tag = 'finn'
+            tagger.state.current_tag.marking = true
+            tagger.data.tags = {jake={}, treehouse={}}
+            assert.are_same({'finn', 'jake', 'treehouse'}, tagger:get_tags())
         end)
 
         it('`get_tag_times` should return the start and end times of any matching tag instance', function()

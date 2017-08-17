@@ -19,6 +19,9 @@ tagger.state = {
     -- delete tag state
     delete_tag_state={active=false},
 
+    -- tags to show in the heads up display
+    hud_tags={},
+
     -- one of two current tag states:
     -- ∙ Actively marking a new tag
     -- ∙ Hovering over an existing tag
@@ -206,6 +209,65 @@ end
 
 
 ---------------------------------------------------------------------
+-- Render the tag heads up display
+function tagger:render_hud(screenx, screeny)
+    if not self.state.tag_hud_active then return end
+
+    local tags = self.state.hud_tags
+    local lines, line, c_len, space, width = {}, '', 0, 5, 60
+    local screenx_sixth = screenx / 6
+
+    for i=1, #tags do
+        local tag = tags[i]
+
+        -- if the length of the line has surpassed our limit, begin a new line
+        if (line .. tag[1]):len() + space - c_len > width then
+            table.insert(lines, line)
+            line = ''
+            c_len = 0
+        end
+
+        -- if the line already contains tags before appending the next tag,
+        -- we should add some spaces
+        if line ~= '' then line = line .. string.rep(' ', space) end
+
+        -- append tag to the line
+        line = line .. self.colour(3, tag[2] and 'FE4365FF' or '83AF9BFF') .. tag[1]
+
+        -- the generated colour codes are 24 characters long, lets keep
+        -- track of them to subtract this length from the final line
+        c_len = c_len + 24
+    end
+
+    -- append final line
+    if line ~= '' then table.insert(lines, line) end
+
+    -- containing box
+    self.ass:new_event()
+    self.ass:draw_start()
+    self.ass:pos(screenx - screenx_sixth * 2, -5)
+    self.ass:append(self.colour(1, '00000044'))
+    self.ass:append(self.colour(3, 'FE4365FF') .. '{\\bord5}')
+    self.ass:rect_cw(0, 0, screenx, screeny + 5)
+    self.ass:draw_stop()
+
+    -- title
+    self.ass:new_event()
+    self.ass:pos(screenx_sixth * 5, 30)
+    self.ass:append(self.colour(3, '00000066'))
+    self.ass:append(self.colour(1, 'FE4365FF'))
+    self.ass:append('{\\fs64\\b1\\bord1\\an8}')
+    self.ass:append('Tags in this video')
+
+    -- tags
+    self.ass:new_event()
+    self.ass:pos(screenx - 20, 150)
+    self.ass:append('{\\fs24\\b1\\bord10\\an9}')
+    self.ass:append(table.concat(lines, '\\N\\N\\N'))
+end
+
+
+---------------------------------------------------------------------
 -- Utility function to work out the width of a string in pixels.
 -- Useful for creating container boxes.
 function tagger.string_pixel_width(text, upper_width, lower_width)
@@ -232,6 +294,16 @@ function string:split(sep)
     self:gsub(pattern, function(c) fields[#fields + 1] = c end)
 
     return fields
+end
+
+---------------------------------------------------------------------
+-- Utility function which returns true if `element` is in `table`
+function table.contains(table, element)
+    for _, value in pairs(table) do
+        if value == element then return true end
+    end
+
+    return false
 end
 
 
@@ -358,6 +430,13 @@ function tagger:get_tags(position)
                     break
                 end
             end
+        end
+    end
+
+    -- always add the tag currently being marked
+    if self.state.current_tag.marking then
+        if not table.contains(tags, self.state.chosen_tag) then
+            table.insert(tags, self.state.chosen_tag)
         end
     end
 
@@ -515,6 +594,7 @@ function tagger:draw(force)
 
     self:render_current_tag()
     self:render_message(screenx, screeny)
+    self:render_hud(screenx, screeny)
 
     if forced or self.state.rendered_string ~= self.ass.text then
         self.mp.set_osd_ass(screenx, screeny, self.ass.text)
@@ -677,12 +757,6 @@ end
 -- the video is played.
 function tagger:toggle_tag_hud()
     self.state.tag_hud_active = not self.state.tag_hud_active
-
-    if self.state.tag_hud_active then
-        self:show_message('Tag heads up display activated')
-    else
-        self:show_message('Tag heads up display disabled')
-    end
 end
 
 ---------------------------------------------------------------------
@@ -782,6 +856,27 @@ function tagger:toggle_existence()
             -- in which case we don't have access to MPV properties
             if pos == '' then
                 return
+            end
+
+            -- tag heads up display
+            if self.state.tag_hud_active then
+                local tags = self:get_tags()
+                self.state.hud_tags = {}
+
+                for i=1, #tags do
+                    table.insert(
+                        self.state.hud_tags,
+                        {
+                            -- tag name
+                            tags[i],
+                            -- tag activity: true or false
+                            table.contains(
+                                self:get_tags(self.time_to_ms(pos)),
+                                tags[i]
+                            )
+                        }
+                    )
+                end
             end
 
             -- marking active
