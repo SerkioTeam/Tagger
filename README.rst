@@ -1,16 +1,12 @@
 Serkio Tagger
 =============
 
+An easy to use plugin for `mpv` to annotate videos with tags while you
+watch them. These tags can then be saved to and loaded from JSON files.
 
-What does this do?
-------------------
-
-Serkio tagger makes it easy to manually create tags that span a time frame in
-a video. Currently, most tools only do top-level tagging like genre and cast
-lists. But what if you want to tag something more detailed? Like which scenes
-have a certain movie star having an argument while wearing a hat. Or scenes
-containing songs by a certain artist. Or teapots. Or thunderstorms. Or tigers.
-Or… almost anything, really. If it happens in the video, you can tag it.
+This was initially created to allow non-technical individuals to help
+build datasets which could be used to train machine learning models.
+It's been open sourced as it has many more potential uses.
 
 
 Who's this for?
