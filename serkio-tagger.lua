@@ -219,7 +219,7 @@ function tagger:render_hud(screenx, screeny)
     if not self.state.tag_hud_active then return end
 
     local tags = self.state.hud_tags
-    local lines, line, c_len, space, width = {}, '', 0, 5, 52
+    local lines, line, c_len, space, width = {}, '', 0, 5, 40
     local screenx_sixth = screenx / 6
 
     for i=1, #tags do
@@ -262,7 +262,7 @@ function tagger:render_hud(screenx, screeny)
     self.ass:append(self.colour(3, '00000066'))
     self.ass:append(self.colour(1, 'FE4365FF'))
     self.ass:append('{\\fs64\\b1\\bord1\\an8}')
-    self.ass:append('Things in this video')
+    self.ass:append('Tagged in frame')
 
     -- tags
     self.ass:new_event()
