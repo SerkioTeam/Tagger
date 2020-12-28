@@ -17,6 +17,7 @@ it.
     :align: center
     :target: https://www.youtube.com/watch?v=ILiBkTo9qWo
 
+.. contents::
 
 Who's this for?
 ---------------
@@ -139,15 +140,15 @@ Keyboard Commands
      - mark the ``start time`` on first press and the ``end time`` on
        second press (uses the active tag)
    * - d
-     - delete the tag you're currently *within* (i.e. it's the active
-       tag and the timeline position contains that tag)
+     - delete the tag you're *within* (i.e. it's the active tag and the
+       timeline position contains that tag)
 
 Tagging Tips
 ------------
 
 * Pausing the video (``space``) and stepping through it
   *frame-by-frame* (``,`` and ``.``) makes it easier to precisely tag
-  things (additionally, holding down ``,`` or ``.`` skips through frames
+  frames (additionally, holding down ``,`` or ``.`` skips through frames
   faster).
 * To find out if something is big enough to be worth tagging, you can
   use the **box tool**. Click anywhere on the video, then click and
