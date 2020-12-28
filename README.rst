@@ -120,6 +120,28 @@ With this example we can see:
   between *00:50* and *01:30*).
 * ``table`` appears once in the video (*00:01* to *00:42*).
 
+Keyboard Commands
+-----------------
+
+.. list-table::
+   :widths: 25 75
+   :header-rows: 1
+
+   * - Keybinding
+     - Action
+   * - Ctrl+t
+     - enable / disable Serkio Tagger
+   * - v
+     - toggle the tag ``heads up display``
+   * - t
+     - select an active tag, creating it if it doesn't already exist
+   * - m
+     - mark the ``start time`` on first press and the ``end time`` on
+       second press (uses the active tag)
+   * - d
+     - delete the tag you're currently *within* (i.e. it's the active
+       tag and the timeline position contains that tag)
+
 Tagging Tips
 ------------
 
